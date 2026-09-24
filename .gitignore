@@ -6,5 +6,13 @@
 .idea/
 *.swp
 
-# Nothing here is built, so nothing here needs ignoring for build output.
-# The sample has no dependencies and no toolchain.
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Local secrets. The app reads FINTREE_SECRET_KEY from the environment;
+# if you ever put one in a file, keep it out of the repo.
+.env

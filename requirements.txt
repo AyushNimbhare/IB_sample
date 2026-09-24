@@ -1,0 +1,3 @@
+# The whole dependency list. There is no frontend toolchain, no bundler and no
+# npm step — the browser gets plain HTML, CSS and one ES5 file.
+Flask>=3.0,<4.0

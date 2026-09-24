@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Investment Banking Simulation — FinTree Career Discovery Program</title>
+<meta name="description" content="A three-stage sample of the Investment Banking simulation: welcome, briefing room, and Project Prism.">
+<!-- Unlisted: shared by link only. See /robots.txt. -->
+<meta name="robots" content="noindex, nofollow, noarchive">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Rethink+Sans:wght@400;500&display=swap">
+<link rel="stylesheet" href="{{ url_for('static', filename='tokens.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='ib.css') }}">
+</head>
+<body>
+<div id="app">
+  <p style="max-width:34ch;margin:64px auto;text-align:center;font:14px system-ui;color: #5b6b7c">
+    Loading the simulation&hellip;
+  </p>
+</div>
+
+<noscript>
+  <div style="max-width:34ch;margin:64px auto;text-align:center;font:14px system-ui;color: #5b6b7c">
+    This simulation needs JavaScript. Please enable it and reload.
+  </div>
+</noscript>
+
+<script src="{{ url_for('static', filename='ib.js') }}" defer></script>
+</body>
+</html>
