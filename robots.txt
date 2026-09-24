@@ -1,0 +1,5 @@
+# Unlisted portfolio sample — shared by direct link only.
+# Kept out of search indexes deliberately; see the noindex meta tag in index.html.
+
+User-agent: *
+Disallow: /

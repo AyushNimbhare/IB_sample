@@ -1,0 +1,210 @@
+/* ==========================================================================
+   Ashford & Rowe — design tokens
+   Foundations only. The palette lives in the app's own stylesheet.
+   ========================================================================== */
+
+:root {
+  /* --- type ------------------------------------------------------------- */
+  --font-productive: "Instrument Sans", "Instrument Sans Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-editorial: "Newsreader", "Newsreader Fallback", ui-serif, Georgia, Cambria, serif;
+  --font-app-sans: "Rethink Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-app-body: "Lato", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* --- paper + ink ------------------------------------------------------ */
+  --paper:  #f6f9fb;
+  --paper-deep:  #eaf1f5;
+  --paper-soft:  #f4f8fa;
+  --paper-bright:  #ffffff;
+  --ink:  #0f172a;
+  --ink-soft:  #1e293b;
+  --ink-raised:  #0b1220;
+  --muted:  #5b6b7c;
+  --muted-soft:  #7d8b96;
+  --line:  #d8e3ea;
+  --line-strong:  #aebfcb;
+
+  /* --- brand ------------------------------------------------------------ */
+  --brand-primary:  #00707d;
+  --brand-accent:  #facc15;
+
+  /* --- accents ---------------------------------------------------------- */
+  --sea:  #006d7a;
+  --sea-deep:  #00505c;
+  --cobalt:  #0e7490;
+  --coral:  #e07a5f;
+  --garnet:  #be4b64;
+  --apricot:  #e8a07f;
+  --brass:  #d9b56b;
+  --eucalyptus:  #4f8078;
+
+  /* --- semantic --------------------------------------------------------- */
+  --success: #166534;
+  --warning: #92600a;
+  --danger: #b3261e;
+  --link:  #00707d;
+
+  /* --- evidence signals (attractive / context / risk) ------------------- */
+  --signal-attractive: #166534;
+  --signal-attractive-bg: #ecfdf5;
+  --signal-attractive-line: #a4f4cf;
+  --signal-context:  #5b6b7c;
+  --signal-context-bg: #f1efe8;
+  --signal-context-line: #d8d1c2;
+  --signal-risk: #b3261e;
+  --signal-risk-bg: #fef2f2;
+  --signal-risk-line: #ffcaca;
+
+  /* --- career tracks ----------------------------------------------------
+     One token pair per track. The colours here are this build's own.
+     -------------------------------------------------------------------- */
+  --track-vc:  #f59e0b;      --track-vc-bg: #fff7ed;   /* track */
+  --track-ib:  #00bcd4;      --track-ib-bg: #eef0fe;   /* track */
+  --track-er:  #00707d;      --track-er-bg: #ecfdf5;   /* track */
+  --track-pwm:  #7c3aed;     --track-pwm-bg: #f5f3ff;  /* track */
+  --track-mc:  #38bdf8;      --track-mc-bg: #f0f9ff;   /* track */
+  --track-pm:  #be185d;      --track-pm-bg: #fdf2f8;   /* track */
+  --track-ds: #475569;      --track-ds-bg: #f1f5f9;   /* track */
+
+  /* --- active track identity (set per track by the engine) -------------- */
+  --identity-ink:  #0f172a;
+  --identity-muted:  #8d99a6;
+  --identity-mark:  #e8a07f;
+  --identity-horizon:  #f6d3c4;
+  --track: var(--track-vc);
+  --track-bg: var(--track-vc-bg);
+
+  /* --- spacing ---------------------------------------------------------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* --- radius ----------------------------------------------------------- */
+  --radius-xs: 2px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+  --radius-full: 9999px;
+
+  /* --- shadow ----------------------------------------------------------- */
+  --shadow-subtle: 0 1px 2px #0000000a;
+  --shadow-card: 0 1px 3px #00000014, 0 4px 12px #0000000a;
+  --shadow-elevated: 0 4px 6px #0000000d, 0 10px 24px #0000000a;
+  --shadow-floating: 0 8px 16px #00000014, 0 20px 40px #0000000f;
+
+  /* --- motion ----------------------------------------------------------- */
+  --duration-instant: 75ms;
+  --duration-fast: 0.15s;
+  --duration-normal: 0.2s;
+  --duration-slow: 0.3s;
+  --duration-dramatic: 0.5s;
+  --duration-cinematic: 0.8s;
+  --ease-smooth: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-snap: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-smooth: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* --- layout ----------------------------------------------------------- */
+  --shell-max: 1180px;
+  --rail-width: 320px;
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-productive);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-family: var(--font-editorial);
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+p {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--link);
+}
+
+/* Visible focus for keyboard users only — never removed, only scoped. */
+:focus-visible {
+  outline: 2px solid var(--track);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Reduced motion is a first-class option, not an afterthought. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

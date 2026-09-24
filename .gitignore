@@ -1,0 +1,10 @@
+# macOS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Nothing here is built, so nothing here needs ignoring for build output.
+# The sample has no dependencies and no toolchain.

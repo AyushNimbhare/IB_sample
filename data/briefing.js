@@ -1,0 +1,120 @@
+/* ==========================================================================
+   Stage 2 — Briefing Room data
+   Six deal words and four quick-check questions.
+
+   Blueprint references:
+     p6  "Six word cards from the prep guide. Each flips to a plain meaning and
+          a one-line example."  "Four quick questions, 25 points each."
+     p6  "Meera links each word to the deal where it matters most."
+
+   Content is data. No logic lives in this file.
+   ========================================================================== */
+
+window.IB_BRIEFING = {
+
+  stageLede: 'Six words you will use today.',
+  stageHint: 'Tap a card to see a real example. Then answer four quick questions.',
+
+  /* Each card front is the term; the back is a plain meaning, a one-line
+     example, and the deal in this programme where the word does the most work. */
+  words: [
+    {
+      id: 'mandate',
+      word: 'Mandate',
+      meaning: 'The job a client gives the bank.',
+      example: 'A retailer asks you to find and buy an online marketplace for it.',
+      where: 'Briefing'
+    },
+    {
+      id: 'valuation',
+      word: 'Valuation',
+      meaning: 'What a company is worth, and why.',
+      example: 'Thirteen staff, no revenue — but thirty million users. What is that worth?',
+      where: 'Project Prism'
+    },
+    {
+      id: 'diligence',
+      word: 'Due diligence',
+      meaning: 'Checking everything before you commit.',
+      example: 'Reading a regulator letter that the seller did not mention.',
+      where: 'Project Cedar'
+    },
+    {
+      id: 'termsheet',
+      word: 'Term sheet',
+      meaning: 'One page with the key terms of the deal.',
+      example: 'Stake, price, new money, and what happens to the founders.',
+      where: 'Project Monsoon'
+    },
+    {
+      id: 'earnout',
+      word: 'Earnout',
+      meaning: 'Part of the price paid later, if targets are hit.',
+      example: 'Pay 80% now and the rest if the company hits its numbers next year.',
+      where: 'Project Vault'
+    },
+    {
+      id: 'fit',
+      word: 'Strategic fit',
+      meaning: 'How well two companies help each other.',
+      example: 'A theme park, a television channel and a toy line can all use the same characters.',
+      where: 'Project Vault'
+    }
+  ],
+
+  /* Question 2 is taken verbatim from the blueprint so the sample matches the
+     spec exactly. The other three are track to the same pattern. */
+  questions: [
+    {
+      id: 'q1',
+      prompt: 'The job a client gives the bank — what is that called?',
+      options: ['Mandate', 'Earnout', 'Term sheet'],
+      answer: 0,
+      why: 'The mandate is the job itself. Everything else is a tool you use while doing it.'
+    },
+    {
+      id: 'q2',
+      prompt: 'A buyer and seller cannot agree on price. Which tool pays part of the price ' +
+              'later, only if the company does well?',
+      options: ['Term sheet', 'Earnout', 'Mandate'],
+      answer: 1,
+      why: 'An earnout moves part of the price into the future and ties it to performance. ' +
+           'It is how you close a gap when two sides disagree about what the company is worth.'
+    },
+    {
+      id: 'q3',
+      prompt: 'You are reading contracts, plant records and regulator letters before your ' +
+              'client commits. What is that work called?',
+      options: ['Valuation', 'Strategic fit', 'Due diligence'],
+      answer: 2,
+      why: 'Due diligence is everything you check before you commit. The deals that go wrong ' +
+           'usually had a letter nobody read.'
+    },
+    {
+      id: 'q4',
+      prompt: 'Two companies sell to the same customers in the same cities. Why might that ' +
+              'make a merger attractive?',
+      options: ['Strategic fit', 'Due diligence', 'Earnout'],
+      answer: 0,
+      why: 'Strategic fit is how well two companies help each other. It is the reason a buyer ' +
+           'pays more than the numbers alone would justify.'
+    }
+  ],
+
+  pointsPerQuestion: 25,
+
+  /* The Deal Book — five face-down mandates. Only Prism is playable in this
+     sample; the rest are shown so the shape of the full run is visible. */
+  dealBook: [
+    { code: 'Prism',   sector: 'Tech',        year: 2012, status: 'open',   note: 'Open now' },
+    { code: 'Vault',   sector: 'Media',       year: 2009, status: 'locked', note: 'Locked' },
+    { code: 'Cedar',   sector: 'Pharma',      year: 2008, status: 'locked', note: 'Locked' },
+    { code: 'Anvil',   sector: 'Steel',       year: 2007, status: 'locked', note: 'Locked' },
+    { code: 'Monsoon', sector: 'E-commerce',  year: 2018, status: 'locked', note: 'Locked' }
+  ],
+
+  dealBookLede: 'Five mandates landed on your desk.',
+  dealBookHint: 'Advise each client. Go, go with protection, or walk away. ' +
+                'Not every deal on your desk is a good deal.',
+  dealBookFooter: 'Receipts only. What really happened is revealed at the end.'
+};
