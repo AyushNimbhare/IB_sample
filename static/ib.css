@@ -2,20 +2,92 @@
    FinTree CDP — Investment Banking sample
    Shell + stage styles for the three-stage sample.
 
-   PALETTE
-     The blueprint (p19) says the style should match the VC simulation:
-     "cream workspace, navy, gold". Resolved against the recovered tokens:
-       cream workspace  ->  --paper         #f6f9fb
-       navy             ->  --track-ib      #00bcd4   (the platform's own IB token)
-       gold             ->  --brand-accent  #facc15
-     Naming the tokens rather than the colours is deliberate — see the review.
+   PALETTE — the 60 / 30 / 10 rule
 
-   Depends on assets/tokens.css for variables and base resets.
+     60%  WHITE    every surface. The page, the cards, the terminal window,
+                   the rail. If it is a background, it is white.
+
+     30%  CYAN     the brand. Primary buttons, links, the active chip, focus
+                   rings, the companion card, the fair-range band, and every
+                   structural rule that should read as "ours".
+
+     10%  YELLOW   the accent, spent on purpose and nowhere else: the marker
+                   on the fair-range bar, the correct answer, the right
+                   metric, the receipt stamp, the avatar, the low clock.
+                   If it is yellow, it is the thing to look at.
+
+     RED stays outside the ratio. A wrong answer and a risk flag have to look
+     wrong whatever the brand is doing, so `--signal-risk` is untouched. It is
+     a functional colour, not part of the theme.
+
+     The tokens in tokens.css are FinTree's own, recovered from their live
+     platform. They are left exactly as they were so the provenance stays
+     readable; this file overrides the ones the sample consumes. Nothing else
+     in the sample names a colour directly — ib.css contains no hex literals
+     and ib.js contains none at all — so this block is the whole theme.
+
+   Depends on static/tokens.css for variables and base resets.
    ========================================================================== */
 
 :root {
-  --track: var(--track-ib);
-  --track-bg: var(--track-ib-bg);
+  /* --- 60 · white ------------------------------------------------------- */
+  --c-60:      #ffffff;
+  --c-60-soft: #fbfdfe;
+  --c-60-page: #f6f9fb;
+  --c-60-deep: #e7eff4;
+
+  /* --- 30 · cyan -------------------------------------------------------- */
+  --c-30:        #0e7490;   /* 5.4:1 on white — safe for text and buttons */
+  --c-30-bright: #06b6d4;
+  --c-30-soft:   #ecfeff;
+  --c-30-deep:   #164e63;
+  --c-30-deeper: #0b3a4a;
+
+  /* --- 10 · yellow ------------------------------------------------------ */
+  --c-10:      #facc15;     /* fills and marks — never small text on white */
+  --c-10-soft: #fefce8;
+  --c-10-deep: #a16207;     /* when yellow has to be readable as text */
+
+  /* --- surfaces (60) ---------------------------------------------------- */
+  --paper:        var(--c-60-page);
+  --paper-soft:   var(--c-60-soft);
+  --paper-deep:   var(--c-60-deep);
+  --paper-bright: var(--c-60);
+
+  /* --- ink -------------------------------------------------------------- */
+  --ink:         #0f172a;
+  --ink-soft:    #1e293b;
+  --ink-raised:  #0b1220;
+  --muted:       #5b6b7c;
+  --muted-soft:  #8496a6;
+  --line:        #e2eaf0;
+  --line-strong: #c6d4de;
+
+  /* --- brand (30) ------------------------------------------------------- */
+  --brand-primary: var(--c-30);
+  --track-ib:        var(--c-30);
+  --track-ib-bg:     var(--c-30-soft);
+  --track:           var(--c-30);
+  --track-bg:        var(--c-30-soft);
+  --link:            var(--c-30);
+  --sea:             var(--c-30-deep);
+  --sea-deep:        var(--c-30-deeper);
+
+  /* --- accent (10) ------------------------------------------------------ */
+  --brand-accent: var(--c-10);
+
+  /* --- text on the deep-cyan surfaces (terminal bar, companion card) ----- */
+  --on-dark:       #e3f2f7;
+  --on-dark-soft:  #9dc0cc;
+  --on-dark-faint: #3f6673;
+
+  /* --- positive states read as brand; only risk stays outside the ratio -- */
+  --signal-attractive:      var(--c-30);
+  --signal-attractive-bg:   var(--c-30-soft);
+  --signal-attractive-line: #a5f0fb;
+  --signal-context:         var(--muted);
+  --signal-context-bg:      var(--c-60-deep);
+  --signal-context-line:    var(--line-strong);
 
   --shell-max: 1180px;
   --rail-width: 320px;
@@ -100,7 +172,9 @@ body {
   font-weight: 500;
 }
 
-.clock--low { color: var(--danger); }
+/* The clock never blocks (see the README), so running low is a signal to
+   look up, not an error — it takes the accent rather than red. */
+.clock--low { color: var(--c-10-deep); }
 
 /* --- stage rail (1..11) -------------------------------------------------- */
 
@@ -590,12 +664,14 @@ body {
   flex: none;
 }
 
+/* The correct answer is the thing to look at, so it takes the 10% accent —
+   and it stays clearly distinct from the cyan "you picked this" state. */
 .option--right {
-  border-color: var(--signal-attractive);
-  background: var(--signal-attractive-bg);
+  border-color: var(--c-10);
+  background: var(--c-10-soft);
 }
 .option--right .option__key {
-  background: var(--signal-attractive); border-color: var(--signal-attractive); color: #fff;
+  background: var(--c-10); border-color: var(--c-10); color: var(--ink);
 }
 
 .option--wrong {
@@ -684,13 +760,16 @@ body {
   padding: 10px 14px;
   background: var(--sea-deep);
   border-radius: var(--radius-md) var(--radius-md) 0 0;
-  color: #d9e4e1;
+  color: var(--on-dark);
   font-family: var(--font-mono);
   font-size: 12px;
 }
 
 .terminal__dots { display: flex; gap: 5px; }
-.terminal__dot { width: 8px; height: 8px; border-radius: 50%; background: #4a5f5a; }
+.terminal__dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--on-dark-faint);
+}
 
 .tabs {
   display: flex;
@@ -843,8 +922,8 @@ body {
 .metric__note { font-size: 11.5px; color: var(--signal-attractive); }
 
 .metric--picked { border-color: var(--track); background: var(--track-bg); }
-.metric--right { border-color: var(--signal-attractive); background: var(--signal-attractive-bg); }
-.metric--right .metric__value { color: var(--signal-attractive); }
+.metric--right { border-color: var(--c-10); background: var(--c-10-soft); }
+.metric--right .metric__value { color: var(--c-10-deep); }
 .metric--wrong { border-color: var(--signal-risk); background: var(--signal-risk-bg); opacity: 0.75; }
 .metric--wrong .metric__value { color: var(--signal-risk); }
 
@@ -868,12 +947,16 @@ body {
   border-right: 1px solid var(--signal-attractive);
 }
 
+/* The accent moment of this chart: the fair range is cyan, your price is
+   yellow. The dark edge is load-bearing — yellow on a pale cyan band has
+   almost no contrast of its own, and the marker has to read at 2px wide. */
 .rangebar__marker {
   position: absolute;
   top: -3px; bottom: -3px;
-  width: 2px;
-  background: var(--ink);
-  transform: translateX(-1px);
+  width: 3px;
+  background: var(--c-10);
+  box-shadow: 0 0 0 1px rgb(15 23 42 / 0.55);
+  transform: translateX(-1.5px);
 }
 
 .rangebar__marker::after {
@@ -882,7 +965,8 @@ body {
   top: -4px; left: 50%;
   width: 9px; height: 9px;
   border-radius: 50%;
-  background: var(--ink);
+  background: var(--c-10);
+  box-shadow: 0 0 0 1.5px rgb(15 23 42 / 0.55);
   transform: translateX(-50%);
 }
 
@@ -910,7 +994,11 @@ body {
   border: 1px solid var(--signal-attractive);
 }
 
-.legend-line { width: 2px; height: 12px; background: var(--ink); }
+.legend-line {
+  width: 3px; height: 12px;
+  background: var(--c-10);
+  box-shadow: 0 0 0 1px rgb(15 23 42 / 0.55);
+}
 
 .range-summary {
   font-size: 13.5px;
@@ -1057,16 +1145,17 @@ body {
   align-items: flex-start;
 }
 
+/* The payoff of the whole run, and the loudest yellow in the app. */
 .stamp {
   font-family: var(--font-editorial);
   font-size: 26px;
   letter-spacing: 0.02em;
-  color: var(--signal-attractive);
-  border: 2px solid var(--signal-attractive);
+  color: var(--ink);
+  border: 2px solid var(--c-10);
   border-radius: var(--radius-md);
   padding: 5px 15px;
   transform: rotate(-1.6deg);
-  background: var(--signal-attractive-bg);
+  background: var(--c-10);
 }
 
 /* ==========================================================================
@@ -1075,7 +1164,7 @@ body {
 
 .companion {
   background: var(--sea-deep);
-  color: #e7eeec;
+  color: var(--on-dark);
   border-radius: var(--radius-lg);
   padding: 16px;
   display: flex;
@@ -1097,7 +1186,7 @@ body {
 }
 
 .companion__name { font-size: 14px; font-weight: 500; }
-.companion__role { font-size: 11.5px; color: #9db3ae; }
+.companion__role { font-size: 11.5px; color: var(--on-dark-soft); }
 
 .companion__line {
   font-family: var(--font-editorial);
@@ -1109,7 +1198,7 @@ body {
   font-size: 10.5px;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: #9db3ae;
+  color: var(--on-dark-soft);
 }
 
 .rail-card {
@@ -1181,7 +1270,7 @@ body {
 
 .toast {
   background: var(--ink-raised);
-  color: #f4f4f2;
+  color: #f1f5f9;
   padding: 10px 16px;
   border-radius: var(--radius-full);
   font-size: 13px;

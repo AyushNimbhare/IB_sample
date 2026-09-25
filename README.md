@@ -138,6 +138,46 @@ and the README says so rather than pretending otherwise. `SECRET_KEY` is random 
 
 ---
 
+## The palette — 60 / 30 / 10
+
+The interface runs on three colours, weighted:
+
+| Share | Colour | Where it goes |
+|---|---|---|
+| **60%** | white | every surface — the page, the cards, the terminal window, the rail |
+| **30%** | cyan `#0e7490` | the brand — primary buttons, links, the active chip, focus rings, the companion card, the fair-range band |
+| **10%** | yellow `#facc15` | the accent, and nowhere else |
+
+The 10% is the interesting part, because a rule like this is only worth following if the accent
+carries meaning. It is spent on four things, all of them "look here":
+
+- **the marker on the fair-range bar** — the band is cyan, your price is yellow, so the one number
+  you control is the one number that stands out
+- **the correct quiz answer and the right valuation metric** — the thing you were supposed to find
+- **the receipt stamp** — the payoff of the run
+- **the avatar and the low clock** — small, and only when they should catch your eye
+
+Cyan and yellow have to stay distinguishable, which is why the *correct* states take yellow rather
+than cyan: a picked-but-unconfirmed option is cyan, a correct one is yellow, a wrong one is red.
+
+**Red sits outside the ratio.** A wrong answer and a risk flag have to look wrong whatever the
+brand is doing, so `--signal-risk` is untouched. It is a functional colour, not part of the theme —
+the same reason the green is gone but the red is not.
+
+**How it is implemented.** FinTree's own tokens live in `static/tokens.css`, recovered from their
+live platform, and they are left exactly as they were — the file still says what it was recovered
+from and which values are track. The 60/30/10 palette is an override block at the top of
+`static/ib.css`, which is the sample's own stylesheet and already owned the track mapping. Nothing
+else names a colour: `ib.css` contains no stray hex outside that block, and `ib.js` contains no
+colour literals at all. So the whole theme is one block, and reverting to FinTree's real palette
+means deleting it.
+
+Worth saying plainly: this is a **deliberate departure** from the blueprint, which asks for the VC
+simulation's *"cream workspace, navy, gold."* The palette is now ours rather than theirs. The
+recovered tokens stay in the repo so the switch back is one deletion, not an archaeology exercise.
+
+---
+
 ## The privacy boundary
 
 The claim this architecture exists to support is: **a player who reads every byte the browser
@@ -219,8 +259,8 @@ different things and now stay separate: a bad request gets a 409 with a readable
 ## Attribution
 
 Built by Ayush as a portfolio piece, from FinTree's Investment Banking blueprint. The design
-tokens in `static/tokens.css` were recovered from FinTree's live platform so the sample reads as
-track rather than as a pastiche. The deal content is adapted from the blueprint, which describes
-real historical transactions; company names stay hidden behind codenames exactly as the blueprint
-specifies, and the sample never states an outcome. Happy to remove or replace any of it on
-request.
+tokens in `static/tokens.css` were recovered from FinTree's live platform, and are kept there
+unmodified so the provenance is readable; the interface on top of them runs the 60/30/10 palette
+described above. The deal content is adapted from the blueprint, which describes real historical
+transactions; company names stay hidden behind codenames exactly as the blueprint specifies, and
+the sample never states an outcome. Happy to remove or replace any of it on request.
