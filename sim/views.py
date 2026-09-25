@@ -47,11 +47,19 @@ CHIPS: tuple[dict[str, Any], ...] = (
 
 WELCOME_SCREENS = ("title", "identity", "role", "desk")
 
-ROLE_CARDS = (
-    ("Buy", "A client wants to acquire a company."),
-    ("Sell", "A client wants to exit."),
-    ("Raise money", "A client needs investors."),
-    ("Fix a company", "A client cannot pay its debts."),
+# Sector -> icon key. Presentation only; the sector name always shows too.
+SECTOR_ICONS = {
+    "Tech": "tech",
+    "Media": "media",
+    "Pharma": "pharma",
+    "Steel": "steel",
+    "E-commerce": "shop",
+}
+
+ROLE_CARDS = (    ("Buy", "A client wants to acquire a company.", "buy"),
+    ("Sell", "A client wants to exit.", "sell"),
+    ("Raise money", "A client needs investors.", "raise"),
+    ("Fix a company", "A client cannot pay its debts.", "fix"),
 )
 
 TUTORIAL_SCRIPT = (
@@ -77,7 +85,12 @@ def _clock_label(seconds: int) -> str:
 
 def _mandates(briefing: dict) -> list[dict[str, Any]]:
     """The desk, as the client draws it. Shared by the welcome desk screen and
-    the Deal Book, so the two can never disagree about what is on the desk."""
+    the Deal Book, so the two can never disagree about what is on the desk.
+
+    `icon` is a key into the client's icon set, chosen from the sector. It is
+    presentation only — it carries no information the sector string does not
+    already carry, and the sector is always shown beside it.
+    """
     return [
         {
             "code": d["code"],
@@ -86,6 +99,7 @@ def _mandates(briefing: dict) -> list[dict[str, Any]]:
             "status": d["status"],
             "note": d["note"],
             "open": d["status"] == "open",
+            "icon": SECTOR_ICONS.get(d["sector"], "deals"),
         }
         for d in briefing["deal_book"]
     ]
@@ -133,27 +147,31 @@ def _chips(state: dict) -> list[dict[str, Any]]:
 
 
 def _companion(state: dict) -> dict[str, str]:
-    """Meera's line. One sentence per screen, and never a repeat of the heading."""
+    """Meera's line: one sentence, and never a restatement of the screen.
+
+    The distinction matters. Meera is the voice that prompts a player — she
+    asks, nudges and reminds. The lede under the heading states context. When
+    both carried the same sentence the screen said everything twice, which is
+    the flattest thing a layout can do.
+    """
     if state["stage"] == "welcome":
         lines = {
-            "title": "Five clients. Five decisions.",
-            "identity": "Sign in, then choose how much help you want.",
-            "role": "Four jobs. Yours today is the buy side.",
-            "desk": "Five mandates, face down. The words come first.",
+            "title": "Not every deal on your desk is a good deal. Knowing the "
+                     "difference is the job.",
+            "identity": "I will be beside you the whole run. Say so if that is too much.",
+            "role": "You are on the buy side. Keep that in mind for the first deal.",
+            "desk": "Five mandates. I would start with the words, not the numbers.",
         }
-        tag = "Meera"
         line = lines.get(state["w_sub"], lines["title"])
     elif state["stage"] == "brief":
         lines = {
-            "briefing": "You will meet each of these again inside a deal.",
-            "quiz": "A wrong answer costs points, nothing else.",
+            "briefing": "You do not need these by heart. You will meet each one again.",
+            "quiz": "A wrong answer costs points and nothing else.",
         }
-        tag = "Meera"
         line = lines.get(state["b_sub"], lines["briefing"])
     else:
-        tag = "Meera"
-        line = "This is where you stand."
-    return {"tag": tag, "line": line}
+        line = "That is the run. Here is where you stand."
+    return {"tag": "Meera", "line": line}
 
 
 def _rail(state: dict) -> dict[str, Any]:
@@ -213,7 +231,7 @@ def _welcome_view(state: dict) -> dict[str, Any]:
         })
 
     elif screen == "role":
-        base["jobs"] = [{"title": t, "desc": d} for t, d in ROLE_CARDS]
+        base["jobs"] = [{"title": t, "desc": d, "icon": i} for t, d, i in ROLE_CARDS]
 
     else:  # desk
         base.update({
@@ -308,6 +326,10 @@ def _dealbook_view(state: dict) -> dict[str, Any]:
         "footer": briefing["deal_book_footer"],
         "close": briefing["deal_book_close"],
         "brief_done": state["brief_done"],
+        # The two numbers the closing panel leads with, sent as numbers so the
+        # client never has to parse them back out of a formatted string.
+        "score": {"points": scoring["points"],
+                  "possible": scoring["points_possible"]},
         # The three receipt counters from the desk. They are the only place the
         # run shows a deal tally, and they carry no outcome: a receipt says what
         # happened to the process, never whether the client did well.

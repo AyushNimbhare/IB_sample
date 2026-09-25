@@ -220,12 +220,15 @@ button { font: inherit; color: inherit; }
   border-bottom: 1px solid var(--line);
 }
 
-.topbar {
+/* Two explicit rows rather than a flex row that happens to wrap: brand and
+   instruments above, the stage rail below. Letting it wrap put the brand alone
+   on one line and the stats on the next at most widths. */
+.topbar { padding: 14px 0 0; }
+.topbar__row {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 18px;
   flex-wrap: wrap;
-  padding: 14px 0 0;
 }
 
 .brand { display: flex; align-items: baseline; gap: 8px; }
@@ -239,21 +242,37 @@ button { font: inherit; color: inherit; }
 
 .topbar__spacer { flex: 1 1 auto; }
 
+/* Stats read as three small instruments rather than a run of text: an icon, a
+   quiet label, and the number. The points chip is the only one that gets a
+   surface, because it is the one a player watches change. */
 .stat {
-  display: flex;
-  align-items: baseline;
-  gap: 5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: .8125rem;
   color: var(--muted);
   white-space: nowrap;
 }
+.stat .ico { color: var(--line-strong); flex: 0 0 auto; }
+.stat__label { color: var(--muted); }
 .stat__value { color: var(--ink); font-weight: 500; }
+
+.stat--score {
+  padding: 4px 10px 4px 8px;
+  background: var(--c-10-soft);
+  border: 1px solid var(--c-10-line);
+}
+.stat--score .ico { color: var(--c-10-ink); }
+.stat--score .stat__value { color: var(--c-10-ink); }
+
+.stat--low { color: var(--signal-risk); }
+.stat--low .ico,
 .stat--low .stat__value { color: var(--signal-risk); }
 
-/* --- the stage rail ------------------------------------------------------
-   Eleven marks: the three the player can reach, and the eight that are locked.
-   A locked mark is dashed and carries a padlock, so "closed" never reads as
-   "pending". Locked stages have no data-action, so there is nothing to click.
+/* The stage rail. Eleven marks: the three the player can reach, and the eight
+   that are locked. A locked mark is dashed and carries a padlock, so "closed"
+   never reads as "pending". Locked stages have no data-action, so there is
+   nothing to click.
    ------------------------------------------------------------------------ */
 
 .rail {
@@ -310,7 +329,7 @@ button { font: inherit; color: inherit; }
   color: var(--line-strong);
   background: transparent;
 }
-.chip__lock { display: block; flex: 0 0 auto; opacity: .8; }
+.chip--locked .ico { color: var(--line-strong); display: block; }
 .chip--locked .chip__name { display: none; }
 
 /* Once there is room, locked stages show their names too — eleven marks with
@@ -319,6 +338,15 @@ button { font: inherit; color: inherit; }
 @media (min-width: 1000px) {
   .chip--locked .chip__name { display: inline; }
 }
+
+/* ==========================================================================
+   Icons
+   ========================================================================== */
+
+.ico { display: inline-block; vertical-align: -.18em; flex: 0 0 auto; }
+.card__title .ico { color: var(--c-30-ink); margin-right: 2px; }
+.nda__title .ico,
+.field > label .ico { color: var(--c-10-ink); margin-right: 3px; }
 
 /* ==========================================================================
    Meera — one line, the quietest thing on the page.
@@ -347,22 +375,21 @@ button { font: inherit; color: inherit; }
 .companion__name { color: var(--ink); font-weight: 500; }
 
 /* ==========================================================================
-   Progress — one bar per screen, never two.
+   Progress — segmented, not a bar.
+
+   Six discrete words read as six things to do. One 0-100% smear does not, and
+   it also cannot say *which* ones are done. A segment that is filled is a word
+   the player has opened, so the state colour carries the meaning.
    ========================================================================== */
 
-.progress { display: flex; align-items: center; gap: 10px; }
-.progress__track {
-  flex: 1 1 auto;
+.segs { display: flex; gap: 4px; }
+.seg {
+  flex: 1 1 0;
   height: 8px;
   background: var(--c-60-deep);
-  overflow: hidden;
+  transition: background var(--speed) linear;
 }
-.progress__bar {
-  display: block;
-  height: 100%;
-  background: var(--c-30);
-  transition: width var(--speed) linear;
-}
+.seg--on { background: var(--c-10); }
 
 /* ==========================================================================
    Cards — square, hard shadow, no tint.
@@ -379,10 +406,16 @@ button { font: inherit; color: inherit; }
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 20px;
+  padding: 13px 20px;
   border-bottom: 1px solid var(--line);
+  background: var(--c-60-deep);
 }
-.card__title { font-weight: 500; font-size: 1.0625rem; }
+.card__title {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 500;
+  font-size: 1.0625rem;
+}
 .card__meta { font-size: .8125rem; color: var(--muted); white-space: nowrap; }
 .card__body { padding: 20px; }
 .card__foot {
@@ -395,6 +428,7 @@ button { font: inherit; color: inherit; }
   background: var(--c-60-deep);
   flex-wrap: wrap;
 }
+.card__foot--flush { border-top: 0; }
 .card__foot .small { color: var(--muted); }
 
 /* ==========================================================================
@@ -463,6 +497,18 @@ button { font: inherit; color: inherit; }
    ========================================================================== */
 
 .welcome { max-width: 620px; }
+.welcome__flag {
+  display: inline-block;
+  margin-bottom: 14px;
+  padding: 3px 10px;
+  font-size: .6875rem;
+  font-weight: 500;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--c-30-ink);
+  background: var(--c-30-soft);
+  border: 1px solid var(--c-30-line);
+}
 .welcome h1 { font-size: 2.875rem; margin-bottom: 12px; letter-spacing: -0.025em; }
 .welcome__lede { color: var(--muted); font-size: 1.125rem; margin-bottom: 20px; }
 .welcome__note {
@@ -546,19 +592,56 @@ button { font: inherit; color: inherit; }
 }
 .mode--on .mode__name { color: var(--c-30-ink); }
 
-/* What bankers do — a list, not four cards. */
-.job-list { display: flex; flex-direction: column; }
+/* What bankers do — four cards, not a list. A list of four label/description
+   pairs reads as a table; four cards read as four things, and the one that is
+   yours takes the accent so the eye lands on it first. */
+.job-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
 .job {
   display: flex;
-  align-items: baseline;
-  gap: 16px;
-  padding: 13px 0;
-  border-bottom: 1px solid var(--line);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 18px 16px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  box-shadow: var(--lift) var(--lift) 0 0 var(--line);
 }
-.job:last-child { border-bottom: 0; padding-bottom: 0; }
-.job:first-child { padding-top: 0; }
-.job__title { flex: 0 0 38%; font-weight: 500; }
-.job__desc { color: var(--muted); font-size: .9375rem; }
+.job__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px; height: 40px;
+  color: var(--c-30-ink);
+  background: var(--c-30-soft);
+  border: 1px solid var(--c-30-line);
+}
+.job__title { font-weight: 500; font-size: .9375rem; }
+.job__desc { font-size: .8125rem; color: var(--muted); }
+.job__tag {
+  margin-top: auto;
+  padding-top: 10px;
+  font-size: .625rem;
+  font-weight: 500;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--c-10-ink);
+}
+
+.job--yours {
+  background: var(--c-10-soft);
+  border-color: var(--c-10);
+  box-shadow: inset 0 0 0 1px var(--c-10);
+}
+.job--yours .job__icon {
+  color: var(--c-10-ink);
+  background: var(--c-10);
+  border-color: var(--c-10);
+}
 
 /* ==========================================================================
    Briefing Room — the word grid
@@ -618,6 +701,37 @@ button { font: inherit; color: inherit; }
    Quiz — the question is the heading. Nothing competes with it.
    ========================================================================== */
 
+/* The question number as a printed mark rather than part of the sentence, so
+   the prompt can be as long as it needs to be. */
+.quiz { display: flex; align-items: flex-start; gap: 18px; }
+.quiz__mark {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 52px;
+  padding: 8px 0 10px;
+  background: var(--c-30-soft);
+  border: 1px solid var(--c-30-line);
+  box-shadow: var(--lift) var(--lift) 0 0 var(--c-30-line);
+}
+.quiz__num {
+  font-family: var(--font-editorial, Georgia, serif);
+  font-size: 1.75rem;
+  line-height: 1;
+  color: var(--c-30-ink);
+}
+.quiz__of {
+  font-size: .5625rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--c-30-ink);
+}
+
+.stage-head--tight { margin-bottom: 20px; flex: 1 1 auto; }
+.stage-head--tight h1 { max-width: none; }
+
 .options { display: flex; flex-direction: column; gap: 10px; }
 
 .option {
@@ -664,7 +778,12 @@ button { font: inherit; color: inherit; }
   background: var(--signal-risk); border-color: var(--signal-risk); color: var(--c-60);
 }
 
+/* The explanation carries an outcome mark, so the reader knows before they
+   read whether they got it right. */
 .explain {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
   margin-top: 16px;
   padding: 14px 16px;
   font-size: .9375rem;
@@ -672,6 +791,7 @@ button { font: inherit; color: inherit; }
   background: var(--c-60-deep);
   border-left: 3px solid var(--line-strong);
 }
+.explain .ico { margin-top: 2px; color: var(--c-30-ink); }
 
 /* ==========================================================================
    Deal Book
@@ -683,15 +803,27 @@ button { font: inherit; color: inherit; }
   gap: 10px;
 }
 
+/* A mandate card stacks: icon, sector, year, codename, status. Codename is the
+   biggest thing on the card because it is what the player holds in their head
+   for the rest of the run. */
 .deal-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 3px;
   text-align: center;
-  padding: 16px 10px;
+  padding: 16px 10px 14px;
   border: 1px solid var(--line);
   background: var(--paper);
+}
+.deal-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px; height: 34px;
+  margin-bottom: 4px;
+  color: var(--line-strong);
+  border: 1px solid var(--line);
 }
 .deal-card__sector {
   font-size: .625rem;
@@ -700,14 +832,18 @@ button { font: inherit; color: inherit; }
   text-transform: uppercase;
   color: var(--muted);
 }
+.deal-card__year {
+  font-size: .6875rem;
+  color: var(--line-strong);
+  letter-spacing: .06em;
+}
 .deal-card__code {
   font-family: var(--font-editorial, Georgia, serif);
-  font-size: 1.1875rem;
+  font-size: 1.375rem;
+  line-height: 1.15;
+  margin: 2px 0 3px;
 }
-.deal-card__status { font-size: .8125rem; color: var(--muted); }
-/* The face-down mark. It was --line-strong, which is 1.7:1 on white — faint
-   enough to read as a rendering fault rather than as a deliberate mark. */
-.deal-card__mark { font-size: 1.25rem; color: var(--muted); line-height: 1; }
+.deal-card__status { font-size: .75rem; color: var(--muted); }
 
 /* The open mandate is the one the player is on: the accent, and a face-up card. */
 .deal-card--open {
@@ -715,35 +851,62 @@ button { font: inherit; color: inherit; }
   border-color: var(--c-10);
   box-shadow: inset 0 0 0 1px var(--c-10);
 }
+.deal-card--open .deal-card__icon {
+  color: var(--c-10-ink);
+  border-color: var(--c-10-line);
+  background: var(--c-10);
+}
 .deal-card--open .deal-card__code { color: var(--c-10-ink); font-weight: 500; }
-.deal-card--open .deal-card__status { color: var(--c-10-ink); }
+.deal-card--open .deal-card__status { color: var(--c-10-ink); font-weight: 500; }
 .deal-card--locked .deal-card__code { color: var(--muted); }
 
 /* Receipt counters — a compact tally, not three showpieces. */
 .receipts {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-top: 14px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 .receipt {
-  display: flex;
+  display: inline-flex;
   align-items: baseline;
-  gap: 7px;
-  padding: 9px 12px;
-  border: 1px solid var(--line);
-}
-.receipt__label {
-  font-size: .6875rem;
-  font-weight: 500;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--muted);
+  gap: 6px;
+  padding: 5px 10px;
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
 }
 .receipt__value {
   font-size: .9375rem;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
+}
+.receipt__label {
+  font-size: .6875rem;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* The closing score. One big number, because it is the one number the player
+   came to see. */
+.score {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding-bottom: 16px;
+  margin-bottom: 4px;
+  border-bottom: 2px solid var(--ink);
+}
+.score__value {
+  font-family: var(--font-editorial, Georgia, serif);
+  font-size: 3.25rem;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--c-10-ink);
+}
+.score__label {
+  font-size: .875rem;
+  color: var(--muted);
+  letter-spacing: .02em;
 }
 
 .summary-table { width: 100%; border-collapse: collapse; }
@@ -816,15 +979,24 @@ button { font: inherit; color: inherit; }
    Responsive — p19 asks for 360px and up.
    ========================================================================== */
 
+@media (max-width: 1040px) {
+  .job-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
 @media (max-width: 860px) {
   .shell { padding: 0 18px; }
+  .job-grid { grid-template-columns: repeat(2, 1fr); }
+  .quiz { gap: 12px; }
+  .quiz__mark { width: 44px; }
+  .quiz__num { font-size: 1.5rem; }
+  .score__value { font-size: 2.5rem; }
   h1 { font-size: 1.75rem; }
   .welcome h1 { font-size: 2.125rem; }
   .welcome__lede { font-size: 1rem; }
   .word-grid { grid-template-columns: repeat(2, 1fr); }
   .dealbook { grid-template-columns: repeat(3, 1fr); }
   .mode-row { grid-template-columns: 1fr; }
-  .topbar { gap: 12px; }
+  .topbar__row { gap: 12px; }
   .brand__you { display: none; }
   .stage-head h1 { max-width: none; }
 }
@@ -832,10 +1004,16 @@ button { font: inherit; color: inherit; }
 @media (max-width: 480px) {
   .shell { padding: 0 14px; }
   .word-grid { grid-template-columns: 1fr; }
+  .job-grid { grid-template-columns: 1fr; }
+  .quiz { flex-direction: column; gap: 14px; }
+  .quiz__mark { flex-direction: row; align-items: baseline; gap: 6px; width: auto;
+                padding: 5px 12px; }
+  .quiz__num { font-size: 1.125rem; }
   .dealbook { grid-template-columns: repeat(2, 1fr); }
   .receipts { grid-template-columns: 1fr; }
   .card__foot { flex-direction: column; align-items: stretch; }
   .card__foot .btn { width: 100%; }
+  .brand { flex: 1 0 100%; }   /* stats get a line of their own */
   .rail { gap: 0; }
   .chip { padding: 3px; }
   .chip__name { display: none; }

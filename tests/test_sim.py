@@ -48,8 +48,10 @@ BUILT_ACTIONS = [
     "welcome.tutorial",
 ]
 
-# Exactly the fields the desk is allowed to show for a mandate.
-MANDATE_KEYS = {"code", "sector", "year", "status", "note", "open"}
+# Exactly the fields the desk is allowed to show for a mandate. `icon` is a key
+# into the client's icon set and carries nothing the `sector` string does not
+# already say, but the desk always shows the sector beside it.
+MANDATE_KEYS = {"code", "sector", "year", "status", "note", "open", "icon"}
 
 
 def _all_keys(node):

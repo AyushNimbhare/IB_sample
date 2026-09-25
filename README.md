@@ -57,10 +57,10 @@ one question: exactly one is accepted, 39 are refused, and the question scores 2
 
 | | | |
 |---|---|---|
-| ![Welcome](screenshots/01-welcome.png) | ![Sign in](screenshots/02-identity.png) | ![Briefing room](screenshots/03-briefing-room.png) |
-| **Welcome.** The run in three lines. | **Sign in.** Name, confidentiality, guidance. | **Briefing room.** Six words, each with a meaning and an example. |
-| ![Quick check](screenshots/04-quick-check.png) | ![Deal Book](screenshots/05-deal-book.png) | |
-| **Quick check.** The question is the heading. | **Deal Book.** Five mandates, one open, and the run's score. | |
+| ![Welcome](screenshots/01-welcome.png) | ![Sign in](screenshots/02-identity.png) | ![What bankers do](screenshots/03-what-bankers-do.png) |
+| **Welcome.** The run in three lines. | **Sign in.** Name, confidentiality, guidance. | **What bankers do.** Four kinds of work; the one that is yours takes the accent. |
+| ![Briefing room](screenshots/04-briefing-room.png) | ![Quick check](screenshots/05-quick-check.png) | ![Deal Book](screenshots/06-deal-book.png) |
+| **Briefing room.** Six words, tracked a segment at a time. | **Quick check.** The question is the heading. | **Deal Book.** Five mandates, one open, and the run's score. |
 
 ---
 
@@ -109,6 +109,7 @@ sim/views.py           state -> render payload                    <- the privacy
 content/briefing.json  the words, the questions, the deal book
 templates/index.html   the shell
 static/ib.js           the view layer. No rules. No answers.
+static/icons.js        inline SVG icon set, drawn in currentColor
 static/ib.css          the whole design system
 static/tokens.css      foundations: type, reset, focus, reduced motion
 tests/test_sim.py      50 tests, including the privacy assertions
@@ -170,6 +171,18 @@ The interface is built to be read in one pass. Three rules did most of the work.
 **One idea per screen.** A heading and, at most, one supporting line. The old build spent five text
 blocks before the player reached the question — the number twice, the points three times, and the
 progress three times. The question is now the heading and the chrome sits around it.
+
+**Meera prompts, the lede states.** The companion card and the line under the heading used to carry
+the same sentence on several screens, which made every screen say everything twice. Meera now asks and
+nudges; the lede gives context. They are different jobs and they no longer overlap.
+
+**Icons carry no colour.** `static/icons.js` is a set of inline SVGs on a 24-unit grid, drawn in
+`currentColor`. One definition therefore works on white, on a cyan fill and on a yellow fill, and the
+palette stays entirely inside `ib.css`. They are all `aria-hidden`, because each one sits beside a text
+label that already carries the meaning.
+
+**Progress is segmented, not smeared.** Six words read as six things to do. A single 0-100% bar cannot
+say which ones are done, and a filled segment can — so the segment takes the state colour.
 
 **The accent means something.** Yellow is spent on state: a word you have opened, the mandate that is
 open, the correct answer, a low clock. Cyan is spent on action: primary buttons, the active stage, the

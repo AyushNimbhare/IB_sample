@@ -30,6 +30,13 @@
      Helpers
      ====================================================================== */
 
+  /* Icon helper. `static/icons.js` sets window.ICON; if it ever fails to load
+     the helper returns an empty string, so a missing asset costs an icon and
+     never a broken screen. */
+  function ICON(name, size, cls) {
+    return window.ICON ? window.ICON(name, size, cls) : '';
+  }
+
   function esc(value) {
     return String(value == null ? '' : value)
       .replace(/&/g, '&amp;')
@@ -138,6 +145,7 @@
     var t = payload.topbar;
     return '' +
       '<header class="topbar">' +
+        '<div class="topbar__row">' +
         '<div class="brand">' +
           '<span class="brand__name">Ashford &amp; Rowe</span>' +
           '<span class="brand__you">' +
@@ -145,13 +153,17 @@
           '</span>' +
         '</div>' +
         '<div class="topbar__spacer"></div>' +
-        '<span class="stat tnum">Deals <span class="stat__value">' +
-          t.deals_done + '/' + t.deals_total + '</span></span>' +
-        '<span class="stat tnum">Points <span class="stat__value">' +
-          t.points + '</span></span>' +
-        '<span class="stat' + (t.clock_low ? ' stat--low' : '') + '">Left ' +
-          '<span class="stat__value" id="clock-value">' +
+        '<span class="stat" title="Mandates on your desk">' + ICON('deals', 15) +
+          '<span class="stat__label">Deals</span>' +
+          '<span class="stat__value tnum">' + t.deals_done + '/' + t.deals_total + '</span></span>' +
+        '<span class="stat stat--score" title="Points earned">' + ICON('points', 15) +
+          '<span class="stat__label">Points</span>' +
+          '<span class="stat__value tnum">' + t.points + '</span></span>' +
+        '<span class="stat' + (t.clock_low ? ' stat--low' : '') + '" title="Time remaining">' +
+          ICON('clock', 15) +
+          '<span class="stat__value tnum" id="clock-value">' +
             esc(clockLabel(clockSecs)) + '</span></span>' +
+        '</div>' +
         renderChips() +
       '</header>';
   }
@@ -163,12 +175,6 @@
      and a padlock — the shape of the programme, and no more. The padlock is
      inline SVG rather than an emoji so it inherits ink and never arrives as a
      colour glyph that fights the palette. */
-  var LOCK = '<svg class="chip__lock" viewBox="0 0 12 14" width="9" height="11" ' +
-             'aria-hidden="true" focusable="false">' +
-             '<path d="M3 6V4a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" ' +
-             'stroke-width="1.4"/><rect x="1" y="6" width="10" height="7" ' +
-             'fill="currentColor"/></svg>';
-
   function renderChips() {
     var html = '<nav class="rail" aria-label="Stages">';
     payload.chips.forEach(function (c) {
@@ -179,7 +185,7 @@
       html += '<span class="' + cls + '"' + mark + '>' +
                 '<span class="chip__num">' + c.n + '</span>' +
                 '<span class="chip__name">' + esc(c.label) + '</span>' +
-                (c.state === 'locked' ? LOCK : '') +
+                (c.state === 'locked' ? ICON('lock', 11) : '') +
               '</span>';
     });
     return html + '</nav>';
@@ -211,6 +217,7 @@
   function welcomeTitle(v) {
     return '' +
       '<div class="welcome">' +
+        '<span class="welcome__flag">Ashford &amp; Rowe</span>' +
         '<h1>' + esc(v.title) + '</h1>' +
         '<p class="welcome__lede">' + esc(v.lede) + '</p>' +
         '<p class="welcome__note">' + esc(v.note) + '</p>' +
@@ -221,7 +228,7 @@
         '</div>' +
         '<div class="btn-row">' +
           '<button class="btn btn--primary" data-action="welcome.next" data-payload="{}">' +
-            'Start</button>' +
+            'Start' + ICON('arrow', 16) + '</button>' +
           '<button class="btn btn--ghost" data-action="welcome.tutorial" data-payload="{}">' +
             (v.tutorial_open ? 'Hide the tour' : '1 min tour') + '</button>' +
         '</div>' +
@@ -233,7 +240,7 @@
     return '' +
       '<div class="card tutorial">' +
         '<div class="card__head">' +
-          '<span class="card__title">The tour</span>' +
+          '<span class="card__title">' + ICON('media', 16) + 'The tour</span>' +
           '<span class="card__meta">1 min \u00b7 read or skip</span>' +
         '</div>' +
         '<div class="card__body">' +
@@ -258,7 +265,7 @@
               'placeholder="Type your name" value="' + esc(draft.name) + '">' +
           '</div>' +
           '<div class="nda">' +
-            '<span class="nda__title">Confidentiality</span>' +
+            '<span class="nda__title">' + ICON('lock', 14) + 'Confidentiality</span>' +
             '<p>Every target is a codename. Those five are yours today:</p>' +
             '<div class="codenames">' +
               v.codenames.map(function (c) {
@@ -271,7 +278,7 @@
             '</label>' +
           '</div>' +
           '<div class="field">' +
-            '<label>Guidance</label>' +
+            '<label>' + ICON('sparkle', 14) + 'Guidance</label>' +
             '<div class="mode-row">' +
               v.modes.map(function (m) {
                 return '<button class="mode' + (draft.guidance === m.id ? ' mode--on' : '') + '" ' +
@@ -294,24 +301,27 @@
   function welcomeRole(v) {
     return '' +
       '<div class="stage-head">' +
-        '<span class="eyebrow">Your job</span>' +
+        '<span class="eyebrow">The job</span>' +
         '<h1>What bankers do</h1>' +
-        '<p class="stage-head__lede">Four jobs. Yours today is the buy side.</p>' +
+        '<p class="stage-head__lede">Four kinds of work. One of them is yours today.</p>' +
       '</div>' +
-      '<div class="card"><div class="card__body">' +
-        '<div class="job-list">' +
-          v.jobs.map(function (j) {
-            return '<div class="job">' +
-                     '<span class="job__title">' + esc(j.title) + '</span>' +
-                     '<span class="job__desc">' + esc(j.desc) + '</span>' +
-                   '</div>';
-          }).join('') +
+      '<div class="job-grid">' +
+        v.jobs.map(function (j, i) {
+          return '<div class="job' + (i === 0 ? ' job--yours' : '') + '">' +
+                   '<span class="job__icon">' + ICON(j.icon, 22) + '</span>' +
+                   '<span class="job__title">' + esc(j.title) + '</span>' +
+                   '<span class="job__desc">' + esc(j.desc) + '</span>' +
+                   (i === 0 ? '<span class="job__tag">Yours today</span>' : '') +
+                 '</div>';
+        }).join('') +
+      '</div>' +
+      '<div class="card">' +
+        '<div class="card__foot card__foot--flush">' +
+          '<span class="small">That is the shape of it.</span>' +
+          '<button class="btn btn--primary" data-action="welcome.next" data-payload="{}">' +
+            'Continue' + ICON('arrow', 16) + '</button>' +
         '</div>' +
-      '</div>' +
-      '<div class="card__foot">' +
-        '<span class="small">One more screen.</span>' +
-        '<button class="btn btn--primary" data-action="welcome.next" data-payload="{}">Continue</button>' +
-      '</div></div>';
+      '</div>';
   }
 
   /* Mandate cards are not buttons: a mandate has no page to open yet, and a
@@ -321,10 +331,12 @@
     return deals.map(function (d) {
       var cls = d.open ? 'deal-card deal-card--open' : 'deal-card deal-card--locked';
       return '<div class="' + cls + '">' +
-               '<span class="deal-card__sector">' + esc(d.sector) + ' \u00b7 ' + d.year + '</span>' +
+               '<span class="deal-card__icon">' + ICON(d.icon, 20) + '</span>' +
+               '<span class="deal-card__sector">' + esc(d.sector) + '</span>' +
+               '<span class="deal-card__year tnum">' + d.year + '</span>' +
                '<span class="deal-card__code">' + esc(d.code) + '</span>' +
-               '<span class="deal-card__status">' + esc(d.note) + '</span>' +
-               (d.open ? '' : '<span class="deal-card__mark" aria-hidden="true">?</span>') +
+               '<span class="deal-card__status">' +
+                 (d.open ? 'Open now' : 'Locked') + '</span>' +
              '</div>';
     }).join('');
   }
@@ -338,7 +350,7 @@
       '</div>' +
       '<div class="card">' +
         '<div class="card__head">' +
-          '<span class="card__title">On your desk</span>' +
+          '<span class="card__title">' + ICON('deals', 16) + 'On your desk</span>' +
           '<span class="card__meta">1 open</span>' +
         '</div>' +
         '<div class="card__body">' +
@@ -377,6 +389,13 @@
         '</button>';
     }).join('');
 
+    /* Segmented, not a bar. Six discrete words read as six things to do, which
+       a single 0-100% smear does not. */
+    var segs = '';
+    for (var i = 0; i < v.total; i++) {
+      segs += '<span class="seg' + (i < v.opened ? ' seg--on' : '') + '"></span>';
+    }
+
     return '' +
       '<div class="stage-head">' +
         '<span class="eyebrow">Briefing</span>' +
@@ -385,14 +404,16 @@
       '</div>' +
       '<div class="card">' +
         '<div class="card__head">' +
-          '<span class="card__title">Opened</span>' +
-          '<span class="card__meta tnum">' + v.opened + ' / ' + v.total + '</span>' +
+          /* The count is the headline of this band, not a repeat of the page
+             heading above it. */
+          '<span class="card__title">' + ICON('word', 16) +
+            '<span class="tnum">' + v.opened + ' of ' + v.total + ' open</span></span>' +
+          '<span class="card__meta">' + (v.can_start_quiz ? 'Ready for the check' : 'Tap a card') +
+            '</span>' +
         '</div>' +
-        '<div class="card__body" style="display:flex;flex-direction:column;gap:16px">' +
-          '<div class="progress">' +
-            '<span class="progress__track"><span class="progress__bar" style="width:' +
-              v.pct + '%"></span></span>' +
-          '</div>' +
+        '<div class="card__body" style="display:flex;flex-direction:column;gap:18px">' +
+          '<div class="segs" role="img" aria-label="' + v.opened + ' of ' + v.total +
+            ' words opened">' + segs + '</div>' +
           '<div class="word-grid">' + cards + '</div>' +
         '</div>' +
         '<div class="card__foot">' +
@@ -429,14 +450,24 @@
     /* The question is the heading. The number, the points and the tally are
        chrome around it, not a paragraph above it. */
     return '' +
-      '<div class="stage-head">' +
-        '<span class="eyebrow">Quick check \u00b7 ' + v.number + ' of ' + v.total + '</span>' +
-        '<h1>' + esc(v.question.prompt) + '</h1>' +
+      '<div class="quiz">' +
+        '<div class="quiz__mark">' +
+          '<span class="quiz__num tnum">' + v.number + '</span>' +
+          '<span class="quiz__of">of ' + v.total + '</span>' +
+        '</div>' +
+        '<div class="stage-head stage-head--tight">' +
+          '<span class="eyebrow">Quick check</span>' +
+          '<h1>' + esc(v.question.prompt) + '</h1>' +
+        '</div>' +
       '</div>' +
       '<div class="card">' +
         '<div class="card__body">' +
           '<div class="options">' + options + '</div>' +
-          (v.answered ? '<p class="explain">' + esc(v.why) + '</p>' : '') +
+          (v.answered
+            ? '<p class="explain">' +
+                (v.picked === v.correct_index ? ICON('check', 16) : ICON('cross', 16)) +
+                '<span>' + esc(v.why) + '</span></p>'
+            : '') +
         '</div>' +
         '<div class="card__foot">' +
           '<span class="small tnum">' + v.answered_count + ' of ' + v.total + ' \u00b7 ' +
@@ -455,8 +486,8 @@
   function renderDealBook(v) {
     var receipts = v.receipts.map(function (r) {
       return '<div class="receipt">' +
-               '<span class="receipt__label">' + esc(r.label) + '</span>' +
                '<span class="receipt__value tnum">' + r.value + '</span>' +
+               '<span class="receipt__label">' + esc(r.label) + '</span>' +
              '</div>';
     }).join('');
 
@@ -468,23 +499,27 @@
       '</div>' +
       '<div class="card">' +
         '<div class="card__head">' +
-          '<span class="card__title">Mandates</span>' +
+          '<span class="card__title">' + ICON('deals', 16) + 'Mandates</span>' +
           '<span class="card__meta">' + (v.brief_done ? 'Briefing complete' : '') + '</span>' +
         '</div>' +
         '<div class="card__body">' +
           '<div class="dealbook">' + dealCards(v.deals) + '</div>' +
-          '<div class="receipts">' + receipts + '</div>' +
         '</div>' +
         '<div class="card__foot">' +
           '<span class="small">' + esc(v.footer) + '</span>' +
+          '<div class="receipts">' + receipts + '</div>' +
         '</div>' +
       '</div>' +
       '<div class="card">' +
         '<div class="card__head">' +
-          '<span class="card__title">Your run</span>' +
-          '<span class="card__meta tnum">' + esc(v.summary[1].value) + ' pts</span>' +
+          '<span class="card__title">' + ICON('seal', 16) + 'Your run</span>' +
+          '<span class="card__meta">Final</span>' +
         '</div>' +
         '<div class="card__body">' +
+          '<div class="score">' +
+            '<span class="score__value tnum">' + v.score.points + '</span>' +
+            '<span class="score__label">points of ' + v.score.possible + '</span>' +
+          '</div>' +
           '<table class="summary-table"><tbody>' +
             v.summary.map(function (row) {
               return '<tr><td>' + esc(row.label) + '</td><td>' + esc(row.value) + '</td></tr>';
