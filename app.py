@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import os
 import secrets
+import threading
 import time
 
 from flask import Flask, jsonify, render_template, request, session
@@ -44,11 +45,20 @@ app.config["JSON_SORT_KEYS"] = False
 # Session store
 #
 # Deliberately an in-memory dict. It is the smallest thing that demonstrates
-# server-authoritative state, and it needs no setup to run. A real deployment
-# would put this in Redis or a database — see the README.
+# server-authoritative state, and it needs no setup to run.
+#
+# This is also why the deploy runs ONE worker process — see the Procfile. Every
+# worker would hold its own copy of this dict, so a player's run would vanish
+# whenever two of their clicks landed on different workers. That is the same
+# failure a serverless platform gives you, which is why the app is not deployed
+# to one.
+#
+# A real deployment at scale would put this in Redis or a database, behind the
+# same three operations used here. See the README.
 # ---------------------------------------------------------------------------
 
 _SESSIONS: dict[str, dict] = {}
+_SESSIONS_LOCK = threading.Lock()
 MAX_SESSIONS = 500
 SESSION_MAX_AGE_SECONDS = 6 * 60 * 60
 
@@ -71,7 +81,14 @@ def _evict_stale() -> None:
 
 
 def _current_state() -> dict:
-    """The state for this browser, created on first contact."""
+    """The state for this browser, created on first contact.
+
+    Not thread-safe on its own, and it does not need to be: every caller holds
+    `_SESSIONS_LOCK` for the whole time it uses the dict it gets back. The lock
+    is not held across a rules call, so a slow action cannot block other
+    players — it only stops two threads from interleaving a read and a write on
+    the same run.
+    """
     sid = session.get("sid")
     if not sid or sid not in _SESSIONS:
         _evict_stale()
@@ -103,7 +120,8 @@ def robots():
 
 @app.get("/api/state")
 def api_state():
-    st = _current_state()
+    with _SESSIONS_LOCK:
+        st = _current_state()
     return jsonify({"ok": True, "state": views.build(st)})
 
 
@@ -121,19 +139,25 @@ def api_action():
     if not isinstance(payload, dict):
         return jsonify({"ok": False, "error": "'payload' must be an object"}), 400
 
-    st = _current_state()
-    try:
-        events = rules.apply_action(st, action, payload)
-    except rules.ActionError as exc:
-        # The state is left untouched, so a rejected action cannot half-apply.
-        return jsonify({
-            "ok": False,
-            "error": str(exc),
-            "action": action,
-            "state": views.build(st),
-        }), 409
+    # One lock for the whole read-modify-write. `_current_state` can insert a new
+    # run into the dict, `apply_action` mutates it, and `views.build` reads it —
+    # so all three belong inside. The lock is per-process and is never held
+    # across I/O, so it cannot become a bottleneck.
+    with _SESSIONS_LOCK:
+        st = _current_state()
+        try:
+            events = rules.apply_action(st, action, payload)
+        except rules.ActionError as exc:
+            # The state is left untouched, so a rejected action cannot half-apply.
+            return jsonify({
+                "ok": False,
+                "error": str(exc),
+                "action": action,
+                "state": views.build(st),
+            }), 409
+        state_payload = views.build(st)
 
-    return jsonify({"ok": True, "events": events, "state": views.build(st)})
+    return jsonify({"ok": True, "events": events, "state": state_payload})
 
 
 @app.get("/api/health")

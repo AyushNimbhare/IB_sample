@@ -1,3 +1,7 @@
 # The whole dependency list. There is no frontend toolchain, no bundler and no
 # npm step — the browser gets plain HTML, CSS and one ES5 file.
+#
+# Flask runs it locally. gunicorn serves it in a deploy, and is not imported
+# anywhere in the app.
 Flask>=3.0,<4.0
+gunicorn>=21.2,<24.0

@@ -1,0 +1,35 @@
+# Render blueprint. A public repo with this file deploys in one click:
+#
+#   https://render.com/deploy?repo=https://github.com/AyushNimbhare/IB_sample
+#
+# On Render: New -> Blueprint -> pick this repo. Render reads the file below.
+#
+# WHY THIS PLATFORM AND NOT A SERVERLESS ONE
+#
+# The run state is an in-memory dict (see app.py). That is fine here because
+# Render runs ONE long-lived process, so the dict lives as long as the deploy.
+# On a serverless platform each request can land on a different instance with
+# its own memory, and a player's run would silently reset between clicks. The
+# `--workers 1` in the Procfile is the same constraint inside a single host:
+# a second worker would be a second copy of the dict.
+#
+# The honest limit: a free instance hibernates when idle and a redeploy restarts
+# the process, so runs in flight are lost. That is fine for a demo and is why
+# `FINTREE_SECRET_KEY` matters — without it every restart also invalidates every
+# session cookie.
+
+services:
+  - type: web
+    name: ib-simulation
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 8 app:app
+    healthCheckPath: /api/health
+    envVars:
+      # Sync this to false and paste a value, or the app mints a random key on
+      # every boot and sessions do not survive a restart. Any long random string.
+      - key: FINTREE_SECRET_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: "3.12.8"

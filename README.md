@@ -13,6 +13,44 @@ python app.py
 # -> http://127.0.0.1:5057
 ```
 
+To run it the way a deploy does, with gunicorn:
+
+```bash
+gunicorn --bind 0.0.0.0:5057 --workers 1 --threads 8 app:app
+```
+
+---
+
+## Deploying
+
+The repo carries a Render blueprint, so it deploys in one click:
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/AyushNimbhare/IB_sample)
+
+Or New → Blueprint → pick this repo. Render reads `render.yaml`.
+
+Set one environment variable, or skip it and read the caveat below:
+
+| Variable | Why |
+|---|---|
+| `FINTREE_SECRET_KEY` | Any long random string. Without it the app mints a new key on every boot and no session cookie survives a restart. The blueprint prompts for it. |
+
+**Why not a serverless platform.** Run state is an in-memory dict (`app.py`). That is safe on Render
+because it runs one long-lived process, so the dict lives as long as the deploy. On Vercel, Netlify
+Functions or Cloudflare Workers each request can land on a different instance with its own memory, so
+a player's run would silently reset between clicks — sign in, press Start, lose everything,
+intermittently. The `--workers 1` in the `Procfile` is the same constraint inside one host: a second
+worker would be a second copy of the dict.
+
+**The honest limits.** A free Render instance hibernates when idle, and any redeploy restarts the
+process, so runs in flight are lost. Neither breaks a demo; both mean "start a fresh run" rather than
+"something is broken". Scaling past one process needs a real datastore behind the same three
+operations the dict does today — `get`, `set`, `evict`.
+
+**One worker, eight threads.** Threads share the dict, so they need the lock that guards it. It is
+held across each read-modify-write and never across I/O. Verified by firing 40 concurrent answers at
+one question: exactly one is accepted, 39 are refused, and the question scores 25 points once.
+
 ---
 
 ## Screens
@@ -63,7 +101,7 @@ That last column is the whole point, and it is testable. See **The privacy bound
 ## How it is put together
 
 ```
-app.py                 two endpoints and an in-memory session store
+app.py                 two endpoints, and the session store that backs them
 sim/content.py         loads and validates the briefing JSON at import time
 sim/state.py           the shape of a run, and the clock
 sim/rules.py           every gate, every score, every transition  <- the authority
@@ -74,6 +112,8 @@ static/ib.js           the view layer. No rules. No answers.
 static/ib.css          the whole design system
 static/tokens.css      foundations: type, reset, focus, reduced motion
 tests/test_sim.py      50 tests, including the privacy assertions
+Procfile               gunicorn, one worker — the deploy entry point
+render.yaml            Render blueprint, deploys in one click
 ```
 
 Two endpoints do all the work:
@@ -115,10 +155,11 @@ global clock counting down from 40 minutes and clamps at zero without ending the
 leaves the tab open still sees the whole flow.
 
 **Sessions are in memory, on purpose.** A dict in `app.py` is the smallest thing that demonstrates
-server-authoritative state and needs no setup. It is not what you would ship: a restart drops every
-run, and it does not work across more than one process. Redis or a table is the real answer.
-`SECRET_KEY` is random per boot unless `FINTREE_SECRET_KEY` is set, which makes the same point from
-the other direction.
+server-authoritative state and needs no setup. It is not what you would ship at scale: a restart
+drops every run, and it cannot span more than one process — which is why the deploy is pinned to one
+worker, and why a serverless platform would break it. Redis or a table is the real answer, behind the
+same three operations. `SECRET_KEY` is random per boot unless `FINTREE_SECRET_KEY` is set, so set it
+in any deploy you care about.
 
 ---
 
@@ -267,6 +308,13 @@ the case-sensitive pattern `python app.py` never matched and the old server kept
 one failed to bind. Caught because the live payload disagreed with the passing test suite. The preview
 restart now kills by port.
 
+**9. The session store was not thread-safe.** `apply_action` was an unsynchronised read-modify-write on
+a shared dict. It did not show up under the Flask test client, which is single-threaded, and it did
+not show up locally either. It only became reachable the moment the app was deployed behind a
+threaded server, where two clicks from one player can land on two threads. There is now a lock around
+the whole read-modify-write, held across the rules call and never across I/O. Firing 40 concurrent
+answers at one question: 1 accepted, 39 refused, 25 points awarded once.
+
 ---
 
 ## Known gaps
@@ -277,7 +325,8 @@ restart now kills by port.
 - **The clock starts at sign-in.** The brief says it starts when the Briefing Room opens.
 - **No quiz keyboard shortcuts.** Options are real buttons and tab fine, but there are no letter or
   arrow-key bindings.
-- **Sessions are in memory**, so a restart drops every run. See above.
+- **Sessions are in memory**, so a restart or a hibernating host drops every run in flight, and the
+  app is pinned to a single worker process. See **Deploying**.
 
 ---
 
