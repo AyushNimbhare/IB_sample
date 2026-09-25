@@ -1,12 +1,11 @@
 {
   "_source": {
-    "document": "IB_Simulation_Experience_Blueprint.pdf",
-    "pages": [5, 6],
-    "note": "Stage 2 content. p6: 'Six word cards from the prep guide. Each flips to a plain meaning and a one-line example.' p6: 'Four quick questions, 25 points each.' p6: 'Meera links each word to the deal where it matters most.'"
+    "document": "the experience brief supplied for this build",
+    "note": "Stage 2 content. Six word cards, each opening to a plain meaning and a one-line example, each linked to the deal where it matters most. Then four quick questions at 25 points each."
   },
 
-  "stage_lede": "Six words you will use today.",
-  "stage_hint": "Tap a card to see a real example. Then answer four quick questions.",
+  "stage_lede": "Six words",
+  "stage_hint": "Open each card.",
   "points_per_question": 25,
 
   "words": [
@@ -93,8 +92,8 @@
     { "code": "Monsoon", "sector": "E-commerce", "year": 2018, "status": "locked", "note": "Locked" }
   ],
 
-  "deal_book_lede": "Five mandates landed on your desk.",
-  "deal_book_hint": "Advise each client. Go, go with protection, or walk away. Not every deal on your desk is a good deal.",
-  "deal_book_footer": "Receipts only. What really happened is revealed at the end.",
-  "deal_book_close": "This sample stops here. In the full programme, Project Prism opens next: the brief, the Deal Terminal, the valuation, and your call — with the outcome sealed until the Truth stage."
+  "deal_book_lede": "Your desk",
+  "deal_book_hint": "Five mandates. One of them is open.",
+  "deal_book_footer": "Outcomes stay sealed until the end.",
+  "deal_book_close": "That is the run. Your score and every answer you gave are on the record."
 }

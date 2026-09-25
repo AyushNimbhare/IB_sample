@@ -164,7 +164,7 @@ class TestContent(Base):
         codes = [d["code"] for d in DEAL_BOOK]
         self.assertEqual(len(set(codes)), len(codes))
 
-    def test_the_sample_ends_with_a_closing_note(self):
+    def test_the_run_ends_with_a_closing_line(self):
         self.assertTrue(BRIEFING["deal_book_close"].strip())
 
 
@@ -298,19 +298,42 @@ class TestDealBook(Base):
             self.assertEqual(self.state()["stage"], expected,
                              f"stage after question {i + 1} was {self.state()['stage']}")
 
-    def test_the_deal_book_is_the_third_chip(self):
+    def test_the_rail_shows_the_whole_programme(self):
+        """The rail is eleven marks long: the shape of the run, not just its length.
+
+        The first three are reachable. The other eight are locked, which is a
+        different thing from upcoming — an upcoming stage is one the player is
+        going to reach, a locked one is not open to them.
+        """
         chips = {c["n"]: c["state"] for c in self.state()["chips"]}
-        self.assertEqual(len(chips), 11, "the full programme is eleven stages")
-        self.assertEqual(chips[1], "active")
-        self.assertEqual(chips[3], "upcoming")
-        self.assertEqual(chips[4], "unbuilt")
+        self.assertEqual(len(chips), 11, "the rail shows all eleven stages")
+        self.assertEqual([chips[n] for n in (1, 2, 3)], ["active", "upcoming", "upcoming"])
+        self.assertEqual({chips[n] for n in range(4, 12)}, {"locked"})
 
         self.reach_dealbook()
         chips = {c["n"]: c["state"] for c in self.state()["chips"]}
-        self.assertEqual(chips[1], "done")
-        self.assertEqual(chips[2], "done")
-        self.assertEqual(chips[3], "active")
-        self.assertEqual(chips[4], "unbuilt", "stage 4 is not built and must not look built")
+        self.assertEqual([chips[n] for n in (1, 2, 3)], ["done", "done", "active"])
+        self.assertEqual({chips[n] for n in range(4, 12)}, {"locked"},
+                         "finishing the desk must not unlock a later stage")
+
+    def test_a_locked_stage_carries_nothing_to_play(self):
+        """A locked chip is a number, a name and a padlock. Nothing else.
+
+        No action, and no hint about what is behind it — the payload says no
+        more about stage 4 than the shape of the rail does.
+        """
+        for chip in self.state()["chips"]:
+            if chip["state"] != "locked":
+                continue
+            self.assertEqual(set(chip), {"n", "label", "state"},
+                             f"locked chip {chip} carries extra fields")
+            self.assertIn(chip["n"], range(4, 12))
+
+        src = self.raw("/static/ib.js")
+        # A locked chip must not be able to post anything. It is rendered as a
+        # span with no data-action, and the client posts only what it finds.
+        self.assertNotIn("data-action", src[src.index("function renderChips"):
+                                            src.index("function renderCompanion")])
 
     def test_the_deal_book_lists_the_whole_desk(self):
         self.reach_dealbook()
@@ -323,10 +346,10 @@ class TestDealBook(Base):
         self.reach_dealbook()
         v = self.view()
         labels = [row["label"] for row in v["summary"]]
-        self.assertIn("Briefing answers correct", labels)
+        self.assertIn("Answers correct", labels)
         self.assertIn("Points", labels)
-        self.assertIn("4 of 4", dict((r["label"], r["value"]) for r in v["summary"])
-                      ["Briefing answers correct"])
+        self.assertEqual(dict((r["label"], r["value"]) for r in v["summary"])
+                         ["Answers correct"], "4 of 4")
 
     def test_the_deal_book_is_terminal(self):
         self.reach_dealbook()
@@ -519,8 +542,8 @@ class TestPlumbing(Base):
 
     def test_health_describes_the_build(self):
         h = self.c.get("/api/health").get_json()
-        self.assertEqual(h["stages_built"], ["welcome", "brief", "dealbook"])
-        self.assertEqual(h["stages_in_programme"], 11)
+        self.assertEqual(h["stages"], ["welcome", "brief", "dealbook"])
+        self.assertEqual(h["stages_in_rail"], 11)
         self.assertEqual(h["mandates"], [d["code"] for d in DEAL_BOOK])
         self.assertIn("brief.answer", h["actions"])
 

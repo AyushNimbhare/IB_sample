@@ -16,3 +16,6 @@ venv/
 # Local secrets. The app reads FINTREE_SECRET_KEY from the environment;
 # if you ever put one in a file, keep it out of the repo.
 .env
+
+# Local agent tooling, not part of the app
+SKILL.md

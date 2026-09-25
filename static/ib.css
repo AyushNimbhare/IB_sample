@@ -1,71 +1,73 @@
 /* ==========================================================================
-   FinTree CDP — Investment Banking sample
-   Shell + stage styles for the three-stage sample.
+   Ashford & Rowe — Investment Banking Simulation
+   Component styles.
 
-   PALETTE — the 60 / 30 / 10 rule
+   PALETTE — 60 / 20 / 20
 
-     60%  WHITE    every surface. The page, the cards, the rail, the topbar.
-                   Pure #ffffff throughout; what separates one surface from
-                   another is a hairline border and a 1px shadow, not a tint.
+      60%  WHITE    every surface: the cards, the topbar, the rails. The page
+                    behind them is white at 96%, so a card reads as sitting on
+                    something rather than floating on a void.
 
-     30%  CYAN     the brand, and the one colour you are meant to notice.
-                   #00bcd4 on the primary buttons, the brand mark, the active
-                   chip, the open word cards, the progress bar, and the whole
-                   companion card in the rail.
+      20%  CYAN     the brand, spent on action. Primary buttons, the active
+                    stage marker, the progress bar, hover states.
 
-     10%  YELLOW   the accent, spent on purpose and nowhere else: the correct
-                   answer, the companion avatar, the low clock. If it is
-                   yellow, it is the thing to look at.
+      20%  YELLOW   the accent, and the "state" colour: a word you have
+                    opened, the mandate that is open, the correct answer, the
+                    avatar, a low clock. Where cyan says "do this", yellow says
+                    "this is where you are".
 
-     RED stays outside the ratio. A wrong answer has to look wrong whatever the
-     brand is doing, so `--signal-risk` is FinTree's own and untouched. It is a
-     functional colour, not part of the theme.
+   The split is the whole idea. Cyan is what the player *does*; yellow is what
+   the player *has*. Because yellow carries real surface area rather than being
+   a single accent, it has to stay legible: `--c-10-ink` is the same hue
+   darkened to 5.1:1 and is used for any yellow that has to hold text.
 
-   A NOTE ON THE BRIGHT CYAN
+   A NOTE ON BRIGHT CYAN
 
-     #00bcd4 is a light colour. On white it reaches only 2.3:1, which is fine
-     for a button or a 5px progress bar and nowhere near enough for a sentence.
-     So the palette splits the brand in two:
+      #00bcd4 is a light colour. On white it reaches only 2.3:1, which is fine
+      for a fill and nowhere near enough for a sentence. So the brand splits:
 
-       --c-30      the fill. Anything painted cyan.
-       --c-30-ink  the same hue, dark enough to read on white (5.8:1).
+        --c-30      the fill. Anything painted cyan.
+        --c-30-ink  the same hue as text on white — 5.8:1.
 
-     And anything printed *on* cyan is dark ink, never white — #0f172a on
-     #00bcd4 is 7.8:1, where white on it would be 2.3:1. Every rule below that
-     puts text on a brand fill sets `color: var(--ink)` for that reason.
+      And anything printed *on* cyan is dark ink, never white: #0f172a on
+      #00bcd4 is 7.8:1.
 
-     The tokens in tokens.css are FinTree's own, recovered from their live
-     platform. They are left exactly as they were so the provenance stays
-     readable; this file overrides the ones the sample consumes. Nothing else
-     in the sample names a colour directly — ib.css contains no stray hex
-     outside this block and ib.js contains none at all — so the block below is
-     the whole theme. Reverting it is deleting the block.
+   FORM
 
-   Depends on static/tokens.css for variables and base resets.
+      The app fills the viewport: a sticky topbar, a content column that grows,
+      and a footer pinned to the bottom, so there is no dead space under a short
+      screen. Corners are square. Depth is a hard 4px offset shadow with no
+      blur, so a card reads as a printed card rather than a floating panel.
+      Motion is one 120ms colour transition on interactive surfaces.
+
+   The tokens in tokens.css are foundations only — type, reset, focus and
+   reduced motion — and name no colour. This file owns the entire palette, and
+   nothing else in the app names one, so the block below is the whole theme.
    ========================================================================== */
 
 :root {
   /* --- 60 · white ------------------------------------------------------- */
   --c-60:      #ffffff;
-  --c-60-deep: #e7eff4;   /* the only shade of white with a job: the trough
-                             behind the progress bar, which has to read as a
-                             groove and not as a surface */
+  --c-60-deep: #eaf1f5;   /* the only shade of white with a job: the trough
+                             behind a progress bar, and card footers */
+  --c-60-page: #f6f9fb;   /* the page behind the cards, so a white card has
+                             something to sit on */
 
-  /* --- 30 · cyan -------------------------------------------------------- */
+  /* --- 20 · cyan -------------------------------------------------------- */
   --c-30:       #00bcd4;   /* the fill — 2.3:1 on white, so never text */
   --c-30-hover: #00acc1;   /* the same hue, one step down */
   --c-30-ink:   #00707d;   /* cyan as text on white — 5.8:1 */
   --c-30-soft:  #e0f7fa;   /* the palest tint, for filled-in states */
   --c-30-line:  #80deea;   /* borders and hairlines */
 
-  /* --- 10 · yellow ------------------------------------------------------ */
-  --c-10:      #facc15;    /* fills and marks — 1.6:1 on white, never text */
-  --c-10-soft: #fefce8;
-  --c-10-deep: #a16207;    /* yellow as text on white — 4.9:1 */
+  /* --- 20 · yellow ------------------------------------------------------ */
+  --c-10:       #facc15;   /* fills and marks — 1.6:1 on white, never text */
+  --c-10-hover: #f5be0b;
+  --c-10-ink:   #8a6300;   /* yellow darkened to 5.1:1, for text on white */
+  --c-10-soft:  #fef9e0;   /* opened / current surfaces */
+  --c-10-line:  #f2d849;   /* borders on yellow surfaces */
 
   /* --- surfaces (60) ---------------------------------------------------- */
-  /* The page and the cards are the same white on purpose. What separates a
-     card from the page is its hairline border and 1px shadow, not a tint. */
   --paper:        var(--c-60);
   --paper-deep:   var(--c-60-deep);
   --paper-bright: var(--c-60);
@@ -75,278 +77,325 @@
   --ink-soft:    #1e293b;
   --ink-raised:  #0b1220;
   --muted:       #5b6b7c;
-  --line:        #e2eaf0;
-  --line-strong: #c6d4de;
+  --line:        #d8e3ea;
+  --line-strong: #aebfcb;
 
-  /* --- brand (30) ------------------------------------------------------- */
-  /* `--track` is FinTree's own name for "this track's colour", and their
-     stylesheet consumes it too — it is the focus outline in tokens.css. The
-     other two are mapped rather than consumed: nothing in this sample reads
-     them, but if FinTree dropped one of their own components in beside ours,
-     it would pick up our brand instead of their green. */
+  /* --- brand ------------------------------------------------------------ */
+  /* `--track` is the one name the foundations file also uses, so the focus
+     ring in tokens.css and the accent here stay the same colour. */
   --track:           var(--c-30);
   --track-bg:        var(--c-30-soft);
-  --brand-primary: var(--c-30);
-  --track-ib:        var(--c-30);
-  --track-ib-bg:     var(--c-30-soft);
   --link:            var(--c-30-ink);
 
-  /* --- accent (10) ------------------------------------------------------ */
-  --brand-accent: var(--c-10);
-
-  /* --- text on the cyan fills (companion card, buttons, marks) ---------- */
+  /* --- text on the cyan and yellow fills -------------------------------- */
   --on-brand:      var(--ink);
   --on-brand-soft: var(--ink-soft);
 
   /* --- positive states -------------------------------------------------- */
-  /* "Good" in this palette means "ours", so the done chips take the brand.
-     Only risk stays outside the ratio — a wrong answer has to look wrong
-     whatever the brand is doing. */
-  --signal-attractive:      var(--c-30-ink);
-  --signal-attractive-bg:   var(--c-30-soft);
-  --signal-attractive-line: var(--c-30-line);
+  /* A word you have opened and a mandate that is open are "you are here",
+     which is what yellow now means. A wrong answer has to look wrong whatever
+     the brand is doing, so --signal-risk stays outside the palette. */
+  --signal-attractive:      var(--c-10-ink);
+  --signal-attractive-bg:   var(--c-10-soft);
+  --signal-attractive-line: var(--c-10-line);
+  --signal-risk:            #c0392b;
+  --signal-risk-bg:         #fdeeec;
+  --signal-risk-line:       #e8a79f;
 
-  --shell-max: 1180px;
-  --rail-width: 320px;
+  /* --- form ------------------------------------------------------------- */
+  --radius:  0px;      /* square. there is no radius in this system */
+  --lift:    4px;      /* the hard offset shadow */
+  --lift-lg: 6px;
+  --speed:   120ms;
+
+  --col: 900px;        /* the content column */
+  --col-top: 1180px;   /* the topbar is wider, so eleven rail marks fit on one
+                          line instead of orphaning the last one */
 }
+
+html { -webkit-text-size-adjust: 100%; height: 100%; }
 
 body {
-  background: var(--paper);
+  margin: 0;
+  min-height: 100%;
+  background: var(--c-60-page);
+  color: var(--ink);
+  font-family: var(--font-app-sans, "Rethink Sans", ui-sans-serif, system-ui, sans-serif);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
+h1, h2, h3 {
+  font-family: var(--font-editorial, "Newsreader", Georgia, serif);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  margin: 0;
+  line-height: 1.12;
+}
+
+h1 { font-size: 2.125rem; }
+h2 { font-size: 1.375rem; }
+h3 { font-size: 1.125rem; }
+
+p { margin: 0; }
+
+button { font: inherit; color: inherit; }
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/* One focus treatment for the whole app: a hard 2px cyan ring with an offset,
+   so it reads on a white card, on a cyan fill and on a yellow fill alike. */
+:focus-visible {
+  outline: 2px solid var(--c-30-ink);
+  outline-offset: 2px;
+}
+
+.tnum { font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.small { font-size: .875rem; }
+
+.eyebrow {
+  display: block;
+  font-size: .75rem;
+  font-weight: 500;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--c-10-ink);
+  margin-bottom: .5rem;
+}
+
+.rule { height: 1px; background: var(--line); border: 0; margin: 0; }
+
 /* ==========================================================================
-   Shell
+   App frame — fills the viewport, so a short screen has no void under it.
    ========================================================================== */
 
-.shell {
+.app {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  background: var(--paper-bright);
-  border-bottom: 1px solid var(--line);
-}
-
-.topbar__inner {
-  max-width: var(--shell-max);
+.shell {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: var(--col);
   margin: 0 auto;
-  padding: 10px 24px;
+  padding: 0 28px;
   display: flex;
-  align-items: center;
-  gap: 20px;
+  flex-direction: column;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.main {
+  flex: 1 0 auto;
+  padding-bottom: 32px;
   min-width: 0;
 }
 
-/* Brand marks are the brand fill with ink on top — white on this cyan would
-   be 2.3:1. See the note at the top of the file. */
-.brand__mark {
-  width: 26px;
-  height: 26px;
-  border-radius: var(--radius-sm);
-  background: var(--c-30);
-  color: var(--ink);
-  display: grid;
-  place-items: center;
-  font-family: var(--font-editorial);
-  font-size: 15px;
-  flex: none;
+/* The title screen is short. Centring it in the space it has stops it sitting
+   at the top of a tall viewport with a void beneath it. */
+.main--centred {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-bottom: 72px;
 }
 
+/* ==========================================================================
+   Topbar — sticky, so the stage rail is always visible. It is wider than the
+   content column, so eleven rail marks sit on one line.
+   ========================================================================== */
+
+.topbar-wrap {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  width: 100%;
+  max-width: var(--col-top);
+  margin: 0 auto;
+  padding: 0 28px;
+  background: var(--c-60-page);
+  border-bottom: 1px solid var(--line);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 14px 0 0;
+}
+
+.brand { display: flex; align-items: baseline; gap: 8px; }
 .brand__name {
-  font-family: var(--font-editorial);
-  font-size: 15px;
-  white-space: nowrap;
+  font-family: var(--font-editorial, Georgia, serif);
+  font-size: 1.1875rem;
+  font-weight: 500;
+  letter-spacing: -0.015em;
 }
-
-.brand__you {
-  font-size: 12px;
-  color: var(--muted);
-  white-space: nowrap;
-}
+.brand__you { font-size: .8125rem; color: var(--muted); }
 
 .topbar__spacer { flex: 1 1 auto; }
 
-.topbar__meta {
+.stat {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  font-size: 12px;
+  align-items: baseline;
+  gap: 5px;
+  font-size: .8125rem;
   color: var(--muted);
   white-space: nowrap;
 }
+.stat__value { color: var(--ink); font-weight: 500; }
+.stat--low .stat__value { color: var(--signal-risk); }
 
-.meta-strong {
-  color: var(--ink);
-  font-weight: 500;
-}
+/* --- the stage rail ------------------------------------------------------
+   Eleven marks: the three the player can reach, and the eight that are locked.
+   A locked mark is dashed and carries a padlock, so "closed" never reads as
+   "pending". Locked stages have no data-action, so there is nothing to click.
+   ------------------------------------------------------------------------ */
 
-/* The clock never blocks (see the README), so running low is a signal to
-   look up, not an error — it takes the accent rather than red. */
-.clock--low { color: var(--c-10-deep); }
-
-/* --- stage rail (1..11) -------------------------------------------------- */
-
-.chips {
+.rail {
   display: flex;
   align-items: center;
-  gap: 4px;
-  max-width: var(--shell-max);
-  margin: 0 auto;
-  padding: 0 24px 10px;
-  overflow-x: auto;
-  scrollbar-width: none;
+  gap: 2px;
+  flex-wrap: wrap;
+  padding: 10px 0 12px;
+  width: 100%;
 }
-.chips::-webkit-scrollbar { display: none; }
 
 .chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 9px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--line);
-  background: var(--paper);
+  padding: 3px 8px 3px 3px;
+  font-size: .75rem;
   color: var(--muted);
-  font-size: 11px;
-  white-space: nowrap;
-  flex: none;
+  border-radius: var(--radius);
 }
-
 .chip__num {
-  font-variant-numeric: tabular-nums;
-  opacity: 0.7;
+  width: 20px; height: 20px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: .6875rem;
+  font-weight: 500;
+  border: 1px solid var(--line-strong);
+  color: var(--muted);
+  flex: 0 0 auto;
 }
 
-/* Three states, three clearly different weights. The active chip is the only
-   solid brand fill in the rail, so "where you are" never has to be read — it
-   is the one that is loudest. A done chip is the same hue, drained. */
 .chip--active {
-  border-color: var(--c-30);
-  background: var(--c-30);
   color: var(--ink);
   font-weight: 500;
+  background: var(--c-30-soft);
+}
+.chip--active .chip__num {
+  background: var(--c-30);
+  border-color: var(--c-30);
+  color: var(--on-brand);
+  box-shadow: 1px 1px 0 0 var(--c-30-ink);
 }
 
-/* A finished stage is the "good" state, and in this palette good means ours. */
-.chip--done {
-  border-color: var(--signal-attractive-line);
-  background: var(--signal-attractive-bg);
-  color: var(--signal-attractive);
+.chip--done { color: var(--ink-soft); }
+.chip--done .chip__num {
+  background: var(--c-10);
+  border-color: var(--c-10);
+  color: var(--on-brand);
 }
 
-.chip--sample {
+.chip--locked { color: var(--line-strong); padding-right: 3px; }
+.chip--locked .chip__num {
   border-style: dashed;
+  border-color: var(--line-strong);
+  color: var(--line-strong);
+  background: transparent;
+}
+.chip__lock { display: block; flex: 0 0 auto; opacity: .8; }
+.chip--locked .chip__name { display: none; }
+
+/* Once there is room, locked stages show their names too — eleven marks with
+   names need about 1000px. Below that the numbers and the padlock carry the
+   meaning on their own. */
+@media (min-width: 1000px) {
+  .chip--locked .chip__name { display: inline; }
 }
 
 /* ==========================================================================
-   Body grid
+   Meera — one line, the quietest thing on the page.
    ========================================================================== */
 
-.body {
-  flex: 1 1 auto;
-  width: 100%;
-  max-width: var(--shell-max);
-  margin: 0 auto;
-  padding: 24px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--rail-width);
-  gap: 24px;
-  align-items: start;
+.companion {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 18px 0 14px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--line);
 }
-
-.main { min-width: 0; display: flex; flex-direction: column; gap: 18px; }
-.rail { min-width: 0; display: flex; flex-direction: column; gap: 14px; position: sticky; top: 96px; }
-
-@media (max-width: 940px) {
-  .body { grid-template-columns: minmax(0, 1fr); }
-  .rail { position: static; }
-  .topbar__inner { flex-wrap: wrap; gap: 10px; }
-}
-
-/* ==========================================================================
-   Stage header
-   ========================================================================== */
-
-.stage-head { display: flex; flex-direction: column; gap: 6px; }
-
-.eyebrow {
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--c-30-ink);
+.companion__avatar {
+  flex: 0 0 auto;
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--c-10);
+  color: var(--on-brand);
+  font-size: .625rem;
   font-weight: 500;
+  letter-spacing: .02em;
+  box-shadow: 2px 2px 0 0 var(--c-10-line);
 }
+.companion__line { font-size: .875rem; color: var(--muted); }
+.companion__name { color: var(--ink); font-weight: 500; }
 
-.stage-head h1 {
-  font-size: 27px;
-  letter-spacing: -0.015em;
+/* ==========================================================================
+   Progress — one bar per screen, never two.
+   ========================================================================== */
+
+.progress { display: flex; align-items: center; gap: 10px; }
+.progress__track {
+  flex: 1 1 auto;
+  height: 8px;
+  background: var(--c-60-deep);
+  overflow: hidden;
 }
-
-.stage-head__lede {
-  font-size: 15px;
-  color: var(--muted);
-  max-width: 62ch;
+.progress__bar {
+  display: block;
+  height: 100%;
+  background: var(--c-30);
+  transition: width var(--speed) linear;
 }
 
 /* ==========================================================================
-   Cards
+   Cards — square, hard shadow, no tint.
    ========================================================================== */
 
 .card {
-  background: var(--paper-bright);
+  background: var(--paper);
   border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-subtle);
+  box-shadow: var(--lift) var(--lift) 0 0 var(--line-strong);
+  margin-bottom: 24px;
 }
-
 .card__head {
-  padding: 16px 20px 0;
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.card__title {
-  font-family: var(--font-editorial);
-  font-size: 17px;
-}
-
-.card__meta {
-  font-size: 12px;
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-.card__body { padding: 14px 20px 20px; }
-
-.card__foot {
-  padding: 14px 20px;
-  border-top: 1px solid var(--line);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.card__title { font-weight: 500; font-size: 1.0625rem; }
+.card__meta { font-size: .8125rem; color: var(--muted); white-space: nowrap; }
+.card__body { padding: 20px; }
+.card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--line);
+  background: var(--c-60-deep);
   flex-wrap: wrap;
 }
-
-.rule { height: 1px; background: var(--line); margin: 16px 0; }
-
-.lede { font-size: 15px; max-width: 66ch; }
-.muted { color: var(--muted); }
-.small { font-size: 12.5px; }
-.tnum { font-variant-numeric: tabular-nums; }
+.card__foot .small { color: var(--muted); }
 
 /* ==========================================================================
    Buttons
@@ -356,366 +405,272 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--line-strong);
-  background: var(--paper-bright);
+  gap: 6px;
+  padding: 11px 22px;
+  background: var(--paper);
+  border: 1px solid var(--ink);
   color: var(--ink);
-  font-size: 14px;
+  font-size: .9375rem;
   font-weight: 500;
-  text-decoration: none;
-  transition: background var(--duration-fast) var(--ease-smooth),
-              border-color var(--duration-fast) var(--ease-smooth),
-              transform var(--duration-instant) var(--ease-smooth);
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: background var(--speed) linear, color var(--speed) linear,
+              transform var(--speed) linear;
 }
+.btn:hover:not(:disabled) { background: var(--c-60-deep); }
+.btn:active:not(:disabled) { transform: translate(1px, 1px); }
 
-.btn:hover:not(:disabled) { border-color: var(--c-30); }
-.btn:active:not(:disabled) { transform: translateY(1px); }
-
+/* A disabled button is drawn, not faded. Opacity over a cyan fill leaves grey
+   text on pale cyan, which fails contrast and reads as broken rather than as
+   unavailable — so the fill and the lift both go, and the label goes muted. */
 .btn:disabled {
-  opacity: 0.45;
   cursor: not-allowed;
+  background: var(--paper);
+  border-color: var(--line);
+  color: var(--muted);
+  box-shadow: none;
 }
+.btn--primary:disabled { background: var(--c-60-deep); border-color: var(--line); }
 
-/* Ink on the bright cyan: 7.8:1. White would be 2.3:1, which is why the
-   primary button is the one place the brand is loudest and the text is
-   darkest. The hover step stays light enough to keep the same dark ink. */
 .btn--primary {
   background: var(--c-30);
   border-color: var(--c-30);
-  color: var(--ink);
-  font-weight: 500;
+  color: var(--on-brand);
+  box-shadow: var(--lift) var(--lift) 0 0 var(--c-30-ink);
+}
+.btn--primary:hover:not(:disabled) { background: var(--c-30-hover); }
+.btn--primary:active:not(:disabled) {
+  box-shadow: 1px 1px 0 0 var(--c-30-ink);
+  transform: translate(3px, 3px);
 }
 
-.btn--primary:hover:not(:disabled) { background: var(--c-30-hover); border-color: var(--c-30-hover); }
+.btn--ghost { border-color: var(--line-strong); color: var(--muted); }
+.btn--sm { padding: 7px 14px; font-size: .875rem; }
 
-.btn--ghost {
-  background: transparent;
-  border-color: transparent;
-  color: var(--muted);
-  padding: 8px 10px;
-}
-.btn--ghost:hover:not(:disabled) { color: var(--ink); border-color: transparent; }
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
 
-.btn--sm { padding: 7px 13px; font-size: 13px; }
+/* ==========================================================================
+   Stage head — one heading. The eyebrow is a two-word location, not a screen
+   number, so it never has to be kept in sync with a spec.
+   ========================================================================== */
 
-.btn-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.stage-head { margin-bottom: 20px; }
+.stage-head h1 { margin-bottom: 8px; max-width: 34ch; }
+.stage-head__lede { color: var(--muted); font-size: 1.0625rem; max-width: 52ch; }
 
 /* ==========================================================================
    Welcome
    ========================================================================== */
 
-.welcome {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 14px;
-  padding: 54px 24px 44px;
+.welcome { max-width: 620px; }
+.welcome h1 { font-size: 2.875rem; margin-bottom: 12px; letter-spacing: -0.025em; }
+.welcome__lede { color: var(--muted); font-size: 1.125rem; margin-bottom: 20px; }
+.welcome__note {
+  font-size: 1.0625rem;
+  color: var(--ink-soft);
+  padding-left: 14px;
+  border-left: 3px solid var(--c-10);
+  margin-bottom: 26px;
 }
-
-.welcome__mark {
-  width: 52px;
-  height: 52px;
-  border-radius: var(--radius-lg);
-  background: var(--c-30);
-  color: var(--ink);
-  display: grid;
-  place-items: center;
-  font-family: var(--font-editorial);
-  font-size: 28px;
-}
-
-.welcome h1 {
-  font-size: 40px;
-  letter-spacing: -0.02em;
-  max-width: 24ch;
-}
-
-.welcome__lede {
-  font-size: 17px;
-  color: var(--muted);
-  max-width: 46ch;
-}
-
-.welcome__facts {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: center;
-  margin-top: 4px;
-}
-
+.welcome__facts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
 .fact {
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  font-size: .875rem;
+  border: 1px solid var(--line-strong);
   padding: 6px 12px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--line);
-  background: var(--paper);
-  font-size: 12.5px;
-  color: var(--muted);
 }
+.fact__dot { width: 6px; height: 6px; background: var(--c-30); }
 
-.fact__dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--brand-accent);
-  flex: none;
-}
+.tutorial { max-width: 560px; }
+.tutorial p + p { margin-top: 10px; }
+.tutorial strong { color: var(--c-30-ink); font-weight: 500; }
 
-.welcome__note {
-  font-size: 13px;
-  color: var(--muted);
-  max-width: 44ch;
-  margin-top: 2px;
-}
+/* Identity ---------------------------------------------------------------- */
 
-/* --- form fields --------------------------------------------------------- */
-
-.field { display: flex; flex-direction: column; gap: 6px; }
-
-.field label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--muted);
-  letter-spacing: 0.01em;
-}
+.field { display: flex; flex-direction: column; gap: 7px; }
+.field > label { font-size: .875rem; font-weight: 500; }
 
 .input {
   width: 100%;
-  padding: 10px 12px;
+  padding: 12px 14px;
+  font: inherit;
+  color: var(--ink);
+  background: var(--paper);
   border: 1px solid var(--line-strong);
-  border-radius: var(--radius-md);
-  background: var(--paper-bright);
-  font-size: 14px;
+  border-radius: var(--radius);
 }
-
-/* The focus ring is the dark cyan, not the brand fill: a 2px #00bcd4 outline
-   on white is only 2.3:1 and a keyboard user has to be able to see it. */
-.input:focus {
-  outline: 2px solid var(--c-30-ink);
-  outline-offset: 1px;
-  border-color: var(--c-30-ink);
-}
-
-.field__hint { font-size: 12px; color: var(--muted); }
-
-/* --- NDA + guidance ------------------------------------------------------ */
+.input:focus { border-color: var(--c-30-ink); }
 
 .nda {
-  border: 1px dashed var(--line-strong);
-  border-radius: var(--radius-md);
-  background: var(--paper);
-  padding: 14px 16px;
-  font-size: 13px;
-  color: var(--muted);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  padding: 16px 18px;
+  background: var(--c-60-deep);
+  border-left: 3px solid var(--c-30);
 }
+.nda p { font-size: .9375rem; color: var(--ink-soft); margin-bottom: 12px; }
+.nda__title { display: block; font-size: .9375rem; font-weight: 500; margin-bottom: 4px; }
 
-.nda__title { font-weight: 500; color: var(--ink); font-size: 13px; }
-
-.codenames { display: flex; gap: 6px; flex-wrap: wrap; }
-
+.codenames { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
 .codename {
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  padding: 3px 8px;
-  border-radius: var(--radius-sm);
-  background: var(--paper-bright);
-  border: 1px solid var(--line);
-  color: var(--ink);
+  font-size: .8125rem;
+  padding: 3px 9px;
+  border: 1px dashed var(--line-strong);
+  color: var(--muted);
 }
 
-.check {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  font-size: 13px;
-  cursor: pointer;
-}
+.check { display: flex; align-items: flex-start; gap: 9px; font-size: .9375rem; cursor: pointer; }
+.check input { margin: 3px 0 0; width: 16px; height: 16px; accent-color: var(--c-30-ink); }
 
-.check input { margin-top: 2px; accent-color: var(--c-30-ink); flex: none; }
-
+/* Guidance: two options, side by side, one line each. */
 .mode-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-
 .mode {
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-md);
-  padding: 12px 14px;
-  background: var(--paper-bright);
-  text-align: left;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
+  text-align: left;
+  padding: 12px 14px;
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: background var(--speed) linear, border-color var(--speed) linear;
 }
+.mode:hover { background: var(--c-60-deep); }
+.mode__name { font-size: .9375rem; font-weight: 500; }
+.mode__desc { font-size: .8125rem; color: var(--muted); }
+.mode--on {
+  background: var(--c-30-soft);
+  border-color: var(--c-30);
+  box-shadow: inset 0 0 0 1px var(--c-30);
+}
+.mode--on .mode__name { color: var(--c-30-ink); }
 
-.mode--on { border-color: var(--c-30); background: var(--track-bg); }
-
-.mode__name { font-size: 13.5px; font-weight: 500; }
-.mode__desc { font-size: 12px; color: var(--muted); }
-
-@media (max-width: 560px) { .mode-row { grid-template-columns: 1fr; } }
+/* What bankers do — a list, not four cards. */
+.job-list { display: flex; flex-direction: column; }
+.job {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line);
+}
+.job:last-child { border-bottom: 0; padding-bottom: 0; }
+.job:first-child { padding-top: 0; }
+.job__title { flex: 0 0 38%; font-weight: 500; }
+.job__desc { color: var(--muted); font-size: .9375rem; }
 
 /* ==========================================================================
-   Briefing room — word cards
+   Briefing Room — the word grid
    ========================================================================== */
 
 .word-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
 
+/* A closed card is short — it holds one word, so it should look like one word.
+   Opening a card lets it grow to fit the meaning and the example. */
 .word-card {
-  position: relative;
-  min-height: 150px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-md);
-  background: var(--paper-bright);
-  padding: 16px;
-  text-align: left;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  transition: border-color var(--duration-fast) var(--ease-smooth),
-              background var(--duration-fast) var(--ease-smooth);
+  align-items: flex-start;
+  gap: 5px;
+  text-align: left;
+  padding: 16px;
+  min-height: 68px;
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: background var(--speed) linear, border-color var(--speed) linear;
 }
-
-.word-card:hover { border-color: var(--c-30); }
-.word-card--open { background: var(--track-bg); border-color: var(--c-30); }
-
-.word-card__word {
-  font-family: var(--font-editorial);
-  font-size: 18px;
-  line-height: 1.2;
+.word-card:hover { border-color: var(--c-30); background: var(--c-30-soft); }
+.word-card__word { font-weight: 500; font-size: 1rem; }
+.word-card__check {
+  align-self: flex-end;
+  font-size: .875rem;
+  color: var(--c-10-ink);
+  line-height: 1;
 }
-
-.word-card__meaning { font-size: 13.5px; }
-
-.word-card__example {
-  font-size: 12.5px;
-  color: var(--muted);
-  border-left: 2px solid var(--c-30);
-  padding-left: 9px;
-}
-
+.word-card__meaning { font-size: .875rem; color: var(--ink-soft); }
+.word-card__example { font-size: .875rem; color: var(--muted); }
 .word-card__where {
   margin-top: auto;
-  font-size: 11px;
-  letter-spacing: 0.06em;
+  padding-top: 8px;
+  font-size: .6875rem;
+  font-weight: 500;
+  letter-spacing: .06em;
   text-transform: uppercase;
-  color: var(--c-30-ink);
+  color: var(--c-10-ink);
 }
 
-.word-card__cue {
-  font-size: 12px;
-  color: var(--muted);
-  margin-top: auto;
+/* An opened card is where the player *is*, so it takes the accent. */
+.word-card--open {
+  background: var(--c-10-soft);
+  border-color: var(--c-10);
+  box-shadow: inset 0 0 0 1px var(--c-10);
+  min-height: 148px;
 }
-
-.word-card__check {
-  position: absolute;
-  top: 12px; right: 12px;
-  width: 18px; height: 18px;
-  border-radius: 50%;
-  background: var(--c-30);
-  color: var(--ink);
-  display: grid;
-  place-items: center;
-  font-size: 11px;
-}
-
-/* --- progress bar -------------------------------------------------------- */
-
-.progress { display: flex; align-items: center; gap: 10px; }
-
-.progress__track {
-  flex: 1 1 auto;
-  height: 5px;
-  border-radius: var(--radius-full);
-  background: var(--paper-deep);
-  overflow: hidden;
-}
-
-.progress__bar {
-  height: 100%;
-  background: var(--c-30);
-  border-radius: var(--radius-full);
-  transition: width var(--duration-slow) var(--ease-smooth);
-}
-
-.progress__label { font-size: 12px; color: var(--muted); white-space: nowrap; }
 
 /* ==========================================================================
-   Quiz
+   Quiz — the question is the heading. Nothing competes with it.
    ========================================================================== */
 
-.quiz { display: flex; flex-direction: column; gap: 16px; }
-
-.quiz__prompt {
-  font-family: var(--font-editorial);
-  font-size: 20px;
-  line-height: 1.3;
-  max-width: 40ch;
-}
-
-.options { display: flex; flex-direction: column; gap: 9px; max-width: 520px; }
+.options { display: flex; flex-direction: column; gap: 10px; }
 
 .option {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 13px 15px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-md);
-  background: var(--paper-bright);
+  gap: 14px;
+  width: 100%;
   text-align: left;
-  font-size: 14px;
-  transition: border-color var(--duration-fast) var(--ease-smooth);
-}
-
-.option:hover:not(:disabled) { border-color: var(--c-30); }
-.option:disabled { cursor: default; }
-
-.option__key {
-  width: 22px; height: 22px;
-  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  background: var(--paper);
   border: 1px solid var(--line-strong);
-  display: grid; place-items: center;
-  font-size: 11px;
+  cursor: pointer;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  transition: background var(--speed) linear, border-color var(--speed) linear;
+}
+.option:hover:not(:disabled) { border-color: var(--c-30); background: var(--c-30-soft); }
+.option:disabled { cursor: default; }
+.option__key {
+  flex: 0 0 auto;
+  width: 24px; height: 24px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: .75rem;
+  border: 1px solid var(--line-strong);
   color: var(--muted);
-  flex: none;
 }
 
-/* The correct answer is the thing to look at, so it takes the 10% accent.
-   Yellow is a fill here, never text: the letter chip is dark ink on #facc15
-   at 11.6:1, and the option's own text stays --ink on the pale tint. */
+/* Right is the one thing the accent is spent on, and it stays distinguishable
+   from the brand: a picked-but-wrong option is red, a correct one is yellow. */
 .option--right {
-  border-color: var(--c-10);
   background: var(--c-10-soft);
+  border-color: var(--c-10);
+  box-shadow: inset 0 0 0 1px var(--c-10);
+  color: var(--ink);
 }
 .option--right .option__key {
-  background: var(--c-10); border-color: var(--c-10); color: var(--ink);
+  background: var(--c-10); border-color: var(--c-10); color: var(--on-brand);
 }
-
 .option--wrong {
-  border-color: var(--signal-risk);
   background: var(--signal-risk-bg);
+  border-color: var(--signal-risk-line);
 }
 .option--wrong .option__key {
-  background: var(--signal-risk); border-color: var(--signal-risk); color: #fff;
+  background: var(--signal-risk); border-color: var(--signal-risk); color: var(--c-60);
 }
 
 .explain {
-  border-left: 2px solid var(--c-30);
-  padding: 2px 0 2px 12px;
-  font-size: 13.5px;
-  color: var(--muted);
-  max-width: 58ch;
+  margin-top: 16px;
+  padding: 14px 16px;
+  font-size: .9375rem;
+  color: var(--ink-soft);
+  background: var(--c-60-deep);
+  border-left: 3px solid var(--line-strong);
 }
 
 /* ==========================================================================
@@ -724,210 +679,178 @@ body {
 
 .dealbook {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 12px;
-}
-
-.deal-card {
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-md);
-  background: var(--paper-bright);
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  text-align: left;
-  min-height: 132px;
-}
-
-.deal-card__sector {
-  font-size: 10.5px;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.deal-card__code {
-  font-family: var(--font-editorial);
-  font-size: 21px;
-  line-height: 1.1;
-}
-
-.deal-card__status {
-  margin-top: auto;
-  font-size: 11.5px;
-  font-weight: 500;
-}
-
-/* The open mandate takes the pale brand fill and the dark cyan label. Locked
-   ones are told apart by colour and the "?" mark rather than by fading the
-   whole card: an opacity of 0.62 dropped their text to about 2.6:1, and the
-   sector and year on a locked card are still worth reading. */
-.deal-card--open { border-color: var(--c-30); background: var(--track-bg); }
-.deal-card--open .deal-card__status { color: var(--c-30-ink); }
-.deal-card--locked { border-color: var(--line); }
-.deal-card--locked .deal-card__status { color: var(--muted); }
-
-.deal-card__mark {
-  width: 20px; height: 20px;
-  border-radius: 50%;
-  border: 1px solid var(--line-strong);
-  display: grid; place-items: center;
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: auto;
-}
-.deal-card--open .deal-card__mark { display: none; }
-
-/* --- run summary table --------------------------------------------------- */
-
-.summary-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-.summary-table td { padding: 9px 0; border-top: 1px solid var(--line); vertical-align: top; }
-.summary-table tr:first-child td { border-top: none; }
-.summary-table td:first-child { color: var(--muted); width: 46%; }
-.summary-table td:last-child { text-align: right; font-weight: 500; }
-
-/* ==========================================================================
-   Companion rail
-   ========================================================================== */
-
-/* The single largest cyan surface in the app — this is where the 30% lives.
-   Every word on it is dark ink; white on #00bcd4 would be 2.3:1. */
-.companion {
-  background: var(--c-30);
-  color: var(--on-brand);
-  border-radius: var(--radius-lg);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.companion__head { display: flex; align-items: center; gap: 11px; }
-
-/* The avatar is the accent on the brand surface: yellow disc, ink initials. */
-.companion__avatar {
-  width: 38px; height: 38px;
-  border-radius: 50%;
-  background: var(--c-10);
-  color: var(--ink);
-  display: grid; place-items: center;
-  font-size: 13px;
-  font-weight: 500;
-  flex: none;
-}
-
-.companion__name { font-size: 14px; font-weight: 500; }
-.companion__role { font-size: 11.5px; color: var(--on-brand-soft); }
-
-.companion__line {
-  font-family: var(--font-editorial);
-  font-size: 15.5px;
-  line-height: 1.4;
-}
-
-.companion__tag {
-  font-size: 10.5px;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--on-brand-soft);
-}
-
-.rail-card {
-  background: var(--paper-bright);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  padding: 15px 16px;
-  display: flex;
-  flex-direction: column;
+  grid-template-columns: repeat(5, 1fr);
   gap: 10px;
 }
 
-.rail-card__title {
-  font-size: 10.5px;
-  letter-spacing: 0.07em;
+.deal-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  text-align: center;
+  padding: 16px 10px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+}
+.deal-card__sector {
+  font-size: .625rem;
+  font-weight: 500;
+  letter-spacing: .08em;
   text-transform: uppercase;
   color: var(--muted);
 }
+.deal-card__code {
+  font-family: var(--font-editorial, Georgia, serif);
+  font-size: 1.1875rem;
+}
+.deal-card__status { font-size: .8125rem; color: var(--muted); }
+/* The face-down mark. It was --line-strong, which is 1.7:1 on white — faint
+   enough to read as a rendering fault rather than as a deliberate mark. */
+.deal-card__mark { font-size: 1.25rem; color: var(--muted); line-height: 1; }
+
+/* The open mandate is the one the player is on: the accent, and a face-up card. */
+.deal-card--open {
+  background: var(--c-10-soft);
+  border-color: var(--c-10);
+  box-shadow: inset 0 0 0 1px var(--c-10);
+}
+.deal-card--open .deal-card__code { color: var(--c-10-ink); font-weight: 500; }
+.deal-card--open .deal-card__status { color: var(--c-10-ink); }
+.deal-card--locked .deal-card__code { color: var(--muted); }
+
+/* Receipt counters — a compact tally, not three showpieces. */
+.receipts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 14px;
+}
+.receipt {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+}
+.receipt__label {
+  font-size: .6875rem;
+  font-weight: 500;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.receipt__value {
+  font-size: .9375rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.summary-table { width: 100%; border-collapse: collapse; }
+.summary-table td {
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 1rem;
+}
+.summary-table tr:last-child td { border-bottom: 0; }
+.summary-table td:last-child {
+  text-align: right;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
 
 /* ==========================================================================
-   Sample badge + footer
+   Offline — the server is not answering, so nothing rendered at all.
    ========================================================================== */
 
-.sample-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 5px 11px;
-  border-radius: var(--radius-full);
-  border: 1px dashed var(--line-strong);
-  background: var(--paper);
-  font-size: 11.5px;
+.empty {
+  max-width: 40ch;
+  margin: 80px auto;
+  text-align: center;
+  font-size: .9375rem;
   color: var(--muted);
-}
-
-.sample-badge__dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--brand-accent);
-}
-
-.footer {
-  max-width: var(--shell-max);
-  margin: 0 auto;
-  padding: 0 24px 34px;
-  font-size: 12px;
-  color: var(--muted);
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
 }
 
 /* ==========================================================================
-   Toast
+   Toasts — bottom-right, because the content column is centred.
    ========================================================================== */
 
 .toast-host {
   position: fixed;
-  left: 50%;
-  bottom: 26px;
-  transform: translateX(-50%);
-  z-index: 60;
+  right: 24px;
+  bottom: 24px;
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
   gap: 8px;
-  align-items: center;
+  z-index: 50;
   pointer-events: none;
 }
-
 .toast {
-  background: var(--ink-raised);
-  color: #f1f5f9;
-  padding: 10px 16px;
-  border-radius: var(--radius-full);
-  font-size: 13px;
-  box-shadow: var(--shadow-elevated);
-  max-width: 80vw;
-  text-align: center;
-  animation: toast-in var(--duration-normal) var(--ease-snap);
+  padding: 10px 18px;
+  background: var(--ink);
+  color: var(--c-60);
+  font-size: .875rem;
+  box-shadow: var(--lift-lg) var(--lift-lg) 0 0 rgba(15, 23, 42, .18);
+  animation: toast-in var(--speed) ease-out;
 }
-
 @keyframes toast-in {
   from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: none; }
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex: 0 0 auto;
+  margin-top: auto;
+  padding: 16px 0 20px;
+  border-top: 1px solid var(--line);
+  font-size: .8125rem;
+  color: var(--muted);
 }
 
 /* ==========================================================================
-   Misc
+   Responsive — p19 asks for 360px and up.
    ========================================================================== */
 
-.empty {
-  border: 1px dashed var(--line-strong);
-  border-radius: var(--radius-lg);
-  padding: 22px;
-  font-size: 14px;
-  color: var(--muted);
-  text-align: center;
+@media (max-width: 860px) {
+  .shell { padding: 0 18px; }
+  h1 { font-size: 1.75rem; }
+  .welcome h1 { font-size: 2.125rem; }
+  .welcome__lede { font-size: 1rem; }
+  .word-grid { grid-template-columns: repeat(2, 1fr); }
+  .dealbook { grid-template-columns: repeat(3, 1fr); }
+  .mode-row { grid-template-columns: 1fr; }
+  .topbar { gap: 12px; }
+  .brand__you { display: none; }
+  .stage-head h1 { max-width: none; }
 }
 
-.hidden { display: none !important; }
+@media (max-width: 480px) {
+  .shell { padding: 0 14px; }
+  .word-grid { grid-template-columns: 1fr; }
+  .dealbook { grid-template-columns: repeat(2, 1fr); }
+  .receipts { grid-template-columns: 1fr; }
+  .card__foot { flex-direction: column; align-items: stretch; }
+  .card__foot .btn { width: 100%; }
+  .rail { gap: 0; }
+  .chip { padding: 3px; }
+  .chip__name { display: none; }
+  .chip--active .chip__name { display: inline; }
+  .toast-host { left: 14px; right: 14px; align-items: stretch; }
+}
+
+/* ==========================================================================
+   Reduced motion — the only animation in the app, and it stops.
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}

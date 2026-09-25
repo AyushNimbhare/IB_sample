@@ -1,5 +1,5 @@
 /* ==========================================================================
-   FinTree CDP — Investment Banking sample. Client.
+   Investment Banking Simulation — client.
 
    This file is a VIEW LAYER and nothing else. It has no idea:
      - which quiz answer is correct
@@ -13,7 +13,7 @@
    file's logic and rewrote it from scratch, the simulation would behave
    identically — which is the point.
 
-   Style: ES5, no dependencies, no build step. Matches the rest of the project.
+   Style: ES5, no dependencies, no build step.
    ========================================================================== */
 
 (function () {
@@ -125,8 +125,8 @@
         render();
       })
       .catch(function () {
-        app.innerHTML = '<div class="empty" style="margin:64px auto;max-width:560px">' +
-          'Could not reach the server. Is <code>python app.py</code> still running?</div>';
+        app.innerHTML = '<p class="empty">' +
+          'Could not reach the server. Is <code>python app.py</code> still running?</p>';
       });
   }
 
@@ -138,74 +138,63 @@
     var t = payload.topbar;
     return '' +
       '<header class="topbar">' +
-        '<div class="topbar__inner">' +
-          '<div class="brand">' +
-            '<span class="brand__mark" aria-hidden="true">A</span>' +
-            '<span class="brand__name">Ashford &amp; Rowe</span>' +
-            '<span class="brand__you">' +
-              (t.name ? esc(t.name) + ' \u00b7 the new analyst' : 'You: the new analyst') +
-            '</span>' +
-          '</div>' +
-          '<div class="topbar__spacer"></div>' +
-          '<div class="topbar__meta">' +
-            '<span>Deals <span class="meta-strong tnum">' + t.deals_done + '/' + t.deals_total + '</span></span>' +
-            '<span>Points <span class="meta-strong tnum">' + t.points + '</span></span>' +
-            '<span class="clock' + (t.clock_low ? ' clock--low' : '') + '">' +
-              'Time left <span class="meta-strong tnum" id="clock-value">' +
-                esc(clockLabel(clockSecs)) + '</span>' +
-            '</span>' +
-            '<span>Guidance <span class="meta-strong">' +
-              (t.guidance === 'less' ? 'Less' : 'Normal') + '</span></span>' +
-            '<button class="btn btn--ghost btn--sm" data-action="restart" data-payload="{}">Restart</button>' +
-          '</div>' +
+        '<div class="brand">' +
+          '<span class="brand__name">Ashford &amp; Rowe</span>' +
+          '<span class="brand__you">' +
+            (t.name ? esc(t.name) : 'the new analyst') +
+          '</span>' +
         '</div>' +
+        '<div class="topbar__spacer"></div>' +
+        '<span class="stat tnum">Deals <span class="stat__value">' +
+          t.deals_done + '/' + t.deals_total + '</span></span>' +
+        '<span class="stat tnum">Points <span class="stat__value">' +
+          t.points + '</span></span>' +
+        '<span class="stat' + (t.clock_low ? ' stat--low' : '') + '">Left ' +
+          '<span class="stat__value" id="clock-value">' +
+            esc(clockLabel(clockSecs)) + '</span></span>' +
         renderChips() +
       '</header>';
   }
 
+  /* Eleven marks: the three the player can reach, and the eight that are locked.
+
+     A locked chip is a span with no data-action, so there is nothing to click
+     and nothing for the delegated handler to fire. It carries a number, a name
+     and a padlock — the shape of the programme, and no more. The padlock is
+     inline SVG rather than an emoji so it inherits ink and never arrives as a
+     colour glyph that fights the palette. */
+  var LOCK = '<svg class="chip__lock" viewBox="0 0 12 14" width="9" height="11" ' +
+             'aria-hidden="true" focusable="false">' +
+             '<path d="M3 6V4a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" ' +
+             'stroke-width="1.4"/><rect x="1" y="6" width="10" height="7" ' +
+             'fill="currentColor"/></svg>';
+
   function renderChips() {
-    var html = '<div class="chips" role="list" aria-label="Programme stages">';
+    var html = '<nav class="rail" aria-label="Stages">';
     payload.chips.forEach(function (c) {
-      var cls = 'chip';
-      var title = '';
-      if (c.state === 'unbuilt') { cls += ' chip--sample'; title = ' title="Not part of this three-stage sample"'; }
-      else if (c.state === 'active') cls += ' chip--active';
-      else if (c.state === 'done') cls += ' chip--done';
-      html += '<span class="' + cls + '" role="listitem"' + title + '>' +
-                '<span class="chip__num">' + c.n + '</span>' + esc(c.label) +
+      var cls = 'chip chip--' + c.state;
+      var mark = c.state === 'active' ? ' aria-current="step"'
+              : c.state === 'locked' ? ' aria-disabled="true"'
+              : '';
+      html += '<span class="' + cls + '"' + mark + '>' +
+                '<span class="chip__num">' + c.n + '</span>' +
+                '<span class="chip__name">' + esc(c.label) + '</span>' +
+                (c.state === 'locked' ? LOCK : '') +
               '</span>';
     });
-    return html + '</div>';
+    return html + '</nav>';
   }
 
-  function renderRail() {
-    var r = payload.rail;
-    var html = '' +
-      '<aside class="rail">' +
-        '<div class="companion">' +
-          '<div class="companion__head">' +
-            '<span class="companion__avatar" aria-hidden="true">MS</span>' +
-            '<span>' +
-              '<span class="companion__name">Meera Sethi</span><br>' +
-              '<span class="companion__role">Managing Director \u00b7 M&amp;A</span>' +
-            '</span>' +
-          '</div>' +
-          '<span class="companion__tag">' + esc(payload.companion.tag) + '</span>' +
-          '<p class="companion__line">' + esc(payload.companion.line) + '</p>' +
-        '</div>' +
-        '<div class="rail-card">' +
-          '<span class="rail-card__title">Briefing progress</span>' +
-          '<div class="progress">' +
-            '<span class="progress__track"><span class="progress__bar" style="width:' +
-              r.progress.pct + '%"></span></span>' +
-            '<span class="progress__label tnum">' + esc(r.progress.label) + '</span>' +
-          '</div>' +
-          '<p class="small muted">Six words opened, four questions answered. ' +
-            'Points come from the questions only.</p>' +
-        '</div>' +
+  /* Meera. One line, above the content, in the flow rather than in a rail —
+     a persistent companion does not need a panel of her own to stay present. */
+  function renderCompanion() {
+    return '' +
+      '<aside class="companion">' +
+        '<span class="companion__avatar" aria-hidden="true">MS</span>' +
+        '<p class="companion__line">' +
+          '<span class="companion__name">Meera</span> \u00b7 ' +
+          esc(payload.companion.line) + '</p>' +
       '</aside>';
-
-    return html;
   }
 
   /* ======================================================================
@@ -222,43 +211,34 @@
   function welcomeTitle(v) {
     return '' +
       '<div class="welcome">' +
-        '<span class="welcome__mark" aria-hidden="true">A</span>' +
-        '<span class="sample-badge"><span class="sample-badge__dot"></span>' +
-          'Three-stage sample of an eleven-stage programme</span>' +
         '<h1>' + esc(v.title) + '</h1>' +
         '<p class="welcome__lede">' + esc(v.lede) + '</p>' +
+        '<p class="welcome__note">' + esc(v.note) + '</p>' +
         '<div class="welcome__facts">' +
           v.facts.map(function (f) {
             return '<span class="fact"><span class="fact__dot"></span>' + esc(f) + '</span>';
           }).join('') +
         '</div>' +
-        '<p class="welcome__note">' + esc(v.note) + '</p>' +
         '<div class="btn-row">' +
           '<button class="btn btn--primary" data-action="welcome.next" data-payload="{}">' +
-            'Start simulation</button>' +
-          '<button class="btn" data-action="welcome.tutorial" data-payload="{}">' +
-            (v.tutorial_open ? 'Hide tutorial' : 'Watch tutorial (1 min)') + '</button>' +
+            'Start</button>' +
+          '<button class="btn btn--ghost" data-action="welcome.tutorial" data-payload="{}">' +
+            (v.tutorial_open ? 'Hide the tour' : '1 min tour') + '</button>' +
         '</div>' +
         (v.tutorial_open ? tutorialPanel(v.tutorial) : '') +
-        '<p class="small muted">' + esc(v.footnote) + '</p>' +
       '</div>';
   }
 
   function tutorialPanel(lines) {
     return '' +
-      '<div class="card" style="text-align:left;max-width:620px">' +
+      '<div class="card tutorial">' +
         '<div class="card__head">' +
-          '<span class="card__title">Tutorial \u00b7 1 minute</span>' +
-          '<span class="card__meta">Script \u00b7 captions included</span>' +
+          '<span class="card__title">The tour</span>' +
+          '<span class="card__meta">1 min \u00b7 read or skip</span>' +
         '</div>' +
         '<div class="card__body">' +
-          '<p class="small muted" style="margin-bottom:10px">' +
-            'In the full programme this is a captioned video. The script is reproduced here ' +
-            'so nothing depends on sound or on watching.' +
-          '</p>' +
           lines.map(function (l) {
-            return '<p style="margin-bottom:8px"><strong>' + esc(l.speaker) + ':</strong> ' +
-                   esc(l.line) + '</p>';
+            return '<p><strong>' + esc(l.speaker) + ':</strong> ' + esc(l.line) + '</p>';
           }).join('') +
         '</div>' +
       '</div>';
@@ -267,78 +247,76 @@
   function welcomeIdentity(v) {
     return '' +
       '<div class="stage-head">' +
-        '<span class="eyebrow">Stage 1 \u00b7 Screen 1.2</span>' +
+        '<span class="eyebrow">Sign in</span>' +
         '<h1>Who you are</h1>' +
-        '<p class="stage-head__lede">Type your name. An Analyst badge fills in.</p>' +
       '</div>' +
-      '<div class="card"><div class="card__body" style="display:flex;flex-direction:column;gap:18px">' +
-        '<div class="field">' +
-          '<label for="analyst-name">Your name</label>' +
-          '<input class="input" id="analyst-name" type="text" maxlength="40" ' +
-            'placeholder="Type your name" value="' + esc(draft.name) + '">' +
-          '<span class="field__hint">Shown on the leaderboard and on your report. ' +
-            'You can hide it from the board later.</span>' +
-        '</div>' +
-        '<div class="nda">' +
-          '<span class="nda__title">Confidentiality</span>' +
-          '<p>Live deals are never discussed by name. Until the Truth, every target in this ' +
-            'programme is referred to by a codename only.</p>' +
-          '<div class="codenames">' +
-            v.codenames.map(function (c) {
-              return '<span class="codename">' + esc(c) + '</span>';
-            }).join('') +
+      '<div class="card">' +
+        '<div class="card__body" style="display:flex;flex-direction:column;gap:20px">' +
+          '<div class="field">' +
+            '<label for="analyst-name">Your name</label>' +
+            '<input class="input" id="analyst-name" type="text" maxlength="40" ' +
+              'placeholder="Type your name" value="' + esc(draft.name) + '">' +
           '</div>' +
-          '<label class="check">' +
-            '<input type="checkbox" id="nda-box"' + (draft.nda ? ' checked' : '') + '>' +
-            '<span>I agree to keep client names confidential until the Truth.</span>' +
-          '</label>' +
-        '</div>' +
-        '<div class="field">' +
-          '<label>Guidance mode</label>' +
-          '<div class="mode-row">' +
-            v.modes.map(function (m) {
-              return '<button class="mode' + (draft.guidance === m.id ? ' mode--on' : '') + '" ' +
-                       'data-action="draft.guidance" data-payload="' + attr({ mode: m.id }) + '">' +
-                       '<span class="mode__name">' + esc(m.name) + '</span>' +
-                       '<span class="mode__desc">' + esc(m.desc) + '</span>' +
-                     '</button>';
-            }).join('') +
+          '<div class="nda">' +
+            '<span class="nda__title">Confidentiality</span>' +
+            '<p>Every target is a codename until the end. Those five are yours today:</p>' +
+            '<div class="codenames">' +
+              v.codenames.map(function (c) {
+                return '<span class="codename">' + esc(c) + '</span>';
+              }).join('') +
+            '</div>' +
+            '<label class="check">' +
+              '<input type="checkbox" id="nda-box"' + (draft.nda ? ' checked' : '') + '>' +
+              '<span>I will keep the names confidential.</span>' +
+            '</label>' +
+          '</div>' +
+          '<div class="field">' +
+            '<label>Guidance</label>' +
+            '<div class="mode-row">' +
+              v.modes.map(function (m) {
+                return '<button class="mode' + (draft.guidance === m.id ? ' mode--on' : '') + '" ' +
+                         'data-action="draft.guidance" data-payload="' + attr({ mode: m.id }) + '">' +
+                         '<span class="mode__name">' + esc(m.name) + '</span>' +
+                         '<span class="mode__desc">' + esc(m.desc) + '</span>' +
+                       '</button>';
+              }).join('') +
+            '</div>' +
           '</div>' +
         '</div>' +
-      '</div>' +
-      '<div class="card__foot">' +
-        '<span class="small muted" id="identity-status"></span>' +
-        '<button class="btn btn--primary" id="identity-continue" ' +
-          'data-action="welcome.identity.submit" data-payload="{}">Continue</button>' +
-      '</div></div>';
+        '<div class="card__foot">' +
+          '<span class="small" id="identity-status"></span>' +
+          '<button class="btn btn--primary" id="identity-continue" ' +
+            'data-action="welcome.identity.submit" data-payload="{}">Continue</button>' +
+        '</div>' +
+      '</div>';
   }
 
   function welcomeRole(v) {
     return '' +
       '<div class="stage-head">' +
-        '<span class="eyebrow">Stage 1 \u00b7 Screen 1.3</span>' +
+        '<span class="eyebrow">Your job</span>' +
         '<h1>What bankers do</h1>' +
-        '<p class="stage-head__lede">Four jobs, in plain words. Today you are on the buy side.</p>' +
+        '<p class="stage-head__lede">Four jobs. Yours today is the buy side.</p>' +
       '</div>' +
       '<div class="card"><div class="card__body">' +
-        '<div class="word-grid">' +
+        '<div class="job-list">' +
           v.jobs.map(function (j) {
-            return '<div class="word-card" style="min-height:auto">' +
-                     '<span class="word-card__word">' + esc(j.title) + '</span>' +
-                     '<span class="word-card__example">' + esc(j.desc) + '</span>' +
+            return '<div class="job">' +
+                     '<span class="job__title">' + esc(j.title) + '</span>' +
+                     '<span class="job__desc">' + esc(j.desc) + '</span>' +
                    '</div>';
           }).join('') +
         '</div>' +
       '</div>' +
       '<div class="card__foot">' +
-        '<span class="small muted">One more screen and the desk is yours.</span>' +
+        '<span class="small">One more screen.</span>' +
         '<button class="btn btn--primary" data-action="welcome.next" data-payload="{}">Continue</button>' +
       '</div></div>';
   }
 
-  /* Mandate cards are never interactive in this sample: opening one is stage 4
-     and stage 4 is not built, so they are plain elements rather than buttons
-     that would do nothing. The open mandate is still visually distinct. */
+  /* Mandate cards are not buttons: a mandate has no page to open yet, and a
+     button that does nothing is worse than no button. The open one is the
+     only one the player is on, so it is the only one that takes the accent. */
   function dealCards(deals) {
     return deals.map(function (d) {
       var cls = d.open ? 'deal-card deal-card--open' : 'deal-card deal-card--locked';
@@ -354,22 +332,24 @@
   function welcomeDesk(v) {
     return '' +
       '<div class="stage-head">' +
-        '<span class="eyebrow">Stage 1 \u00b7 Screen 1.4</span>' +
-        '<h1>Your job today</h1>' +
-        '<p class="stage-head__lede">Five face-down deal cards. Sector and year only \u2014 ' +
-          'the company names stay hidden until the Truth.</p>' +
+        '<span class="eyebrow">Your job today</span>' +
+        '<h1>Five mandates</h1>' +
+        '<p class="stage-head__lede">Sector and year only. The names stay hidden until the end.</p>' +
       '</div>' +
-      '<div class="card"><div class="card__body">' +
-        '<div class="dealbook">' + dealCards(v.deals) + '</div>' +
-        '<div class="rule"></div>' +
-        '<p class="small muted">' + esc(v.footer) + '</p>' +
-      '</div>' +
-      '<div class="card__foot">' +
-        '<span class="small muted">The words come first. Read them before you look at ' +
-          'any number.</span>' +
-        '<button class="btn btn--primary" data-action="brief.open" data-payload="{}">' +
-          'Open the Briefing Room</button>' +
-      '</div></div>';
+      '<div class="card">' +
+        '<div class="card__head">' +
+          '<span class="card__title">On your desk</span>' +
+          '<span class="card__meta">1 open</span>' +
+        '</div>' +
+        '<div class="card__body">' +
+          '<div class="dealbook">' + dealCards(v.deals) + '</div>' +
+        '</div>' +
+        '<div class="card__foot">' +
+          '<span class="small">Read the words first.</span>' +
+          '<button class="btn btn--primary" data-action="brief.open" data-payload="{}">' +
+            'Open the Briefing Room</button>' +
+        '</div>' +
+      '</div>';
   }
 
   /* ======================================================================
@@ -392,42 +372,39 @@
           (w.open
             ? '<span class="word-card__meaning">' + esc(w.meaning) + '</span>' +
               '<span class="word-card__example">' + esc(w.example) + '</span>' +
-              '<span class="word-card__where">Matters most in \u00b7 ' + esc(w.where) + '</span>'
-            : '<span class="word-card__cue">Tap to see the meaning and an example</span>') +
+              '<span class="word-card__where">' + esc(w.where) + '</span>'
+            : '') +
         '</button>';
     }).join('');
 
     return '' +
       '<div class="stage-head">' +
-        '<span class="eyebrow">Stage 2 \u00b7 Briefing Room</span>' +
+        '<span class="eyebrow">Briefing</span>' +
         '<h1>' + esc(v.lede) + '</h1>' +
         '<p class="stage-head__lede">' + esc(v.hint) + '</p>' +
       '</div>' +
       '<div class="card">' +
         '<div class="card__head">' +
-          '<span class="card__title">Six words you will use today</span>' +
-          '<span class="card__meta tnum">' + v.opened + ' of ' + v.total + ' opened</span>' +
+          '<span class="card__title">Opened</span>' +
+          '<span class="card__meta tnum">' + v.opened + ' / ' + v.total + '</span>' +
         '</div>' +
         '<div class="card__body" style="display:flex;flex-direction:column;gap:16px">' +
           '<div class="progress">' +
             '<span class="progress__track"><span class="progress__bar" style="width:' +
               v.pct + '%"></span></span>' +
-            '<span class="progress__label tnum">' + v.pct + '%</span>' +
           '</div>' +
           '<div class="word-grid">' + cards + '</div>' +
         '</div>' +
         '<div class="card__foot">' +
-          '<span class="small muted">' +
-            (v.can_start_quiz
-              ? 'All six opened. Four quick questions next.'
-              : 'Open all six to continue \u2014 or reveal them if you already know these words.') +
+          '<span class="small">' +
+            (v.can_start_quiz ? 'All six open.' : 'Open all six to continue.') +
           '</span>' +
           '<div class="btn-row">' +
             (v.can_start_quiz ? '' :
               '<button class="btn btn--ghost btn--sm" data-action="brief.reveal_all" ' +
               'data-payload="{}">Reveal all</button>') +
             '<button class="btn btn--primary" data-action="brief.start_quiz" data-payload="{}"' +
-              (v.can_start_quiz ? '' : ' disabled') + '>Four quick questions</button>' +
+              (v.can_start_quiz ? '' : ' disabled') + '>Quick check</button>' +
           '</div>' +
         '</div>' +
       '</div>';
@@ -449,28 +426,24 @@
              '</button>';
     }).join('');
 
+    /* The question is the heading. The number, the points and the tally are
+       chrome around it, not a paragraph above it. */
     return '' +
       '<div class="stage-head">' +
-        '<span class="eyebrow">Stage 2 \u00b7 Quick check \u00b7 Question ' + v.number +
-          ' of ' + v.total + '</span>' +
-        '<h1>Four quick questions</h1>' +
-        '<p class="stage-head__lede">Twenty-five points each. You get the explanation either way.</p>' +
+        '<span class="eyebrow">Quick check \u00b7 ' + v.number + ' of ' + v.total + '</span>' +
+        '<h1>' + esc(v.question.prompt) + '</h1>' +
       '</div>' +
       '<div class="card">' +
-        '<div class="card__head">' +
-          '<span class="card__title tnum">Question ' + v.number + ' of ' + v.total + '</span>' +
-          '<span class="card__meta tnum">' + v.points + ' points</span>' +
-        '</div>' +
-        '<div class="card__body quiz">' +
-          '<p class="quiz__prompt">' + esc(v.question.prompt) + '</p>' +
+        '<div class="card__body">' +
           '<div class="options">' + options + '</div>' +
           (v.answered ? '<p class="explain">' + esc(v.why) + '</p>' : '') +
         '</div>' +
         '<div class="card__foot">' +
-          '<span class="small muted tnum">' + v.answered_count + ' of ' + v.total + ' answered</span>' +
+          '<span class="small tnum">' + v.answered_count + ' of ' + v.total + ' \u00b7 ' +
+            v.points + ' pts</span>' +
           '<button class="btn btn--primary" data-action="brief.next_question" data-payload="{}"' +
             (v.can_advance ? '' : ' disabled') + '>' +
-            (v.is_last ? 'To the Deal Book' : 'Next question') + '</button>' +
+            (v.is_last ? 'To your desk' : 'Next') + '</button>' +
         '</div>' +
       '</div>';
   }
@@ -480,27 +453,36 @@
      ====================================================================== */
 
   function renderDealBook(v) {
+    var receipts = v.receipts.map(function (r) {
+      return '<div class="receipt">' +
+               '<span class="receipt__label">' + esc(r.label) + '</span>' +
+               '<span class="receipt__value tnum">' + r.value + '</span>' +
+             '</div>';
+    }).join('');
+
     return '' +
       '<div class="stage-head">' +
-        '<span class="eyebrow">Stage 3 \u00b7 Deal Book</span>' +
+        '<span class="eyebrow">Deal Book</span>' +
         '<h1>' + esc(v.lede) + '</h1>' +
         '<p class="stage-head__lede">' + esc(v.hint) + '</p>' +
       '</div>' +
       '<div class="card">' +
         '<div class="card__head">' +
-          '<span class="card__title">On your desk</span>' +
+          '<span class="card__title">Mandates</span>' +
           '<span class="card__meta">' + (v.brief_done ? 'Briefing complete' : '') + '</span>' +
         '</div>' +
-        '<div class="card__body" style="display:flex;flex-direction:column;gap:16px">' +
+        '<div class="card__body">' +
           '<div class="dealbook">' + dealCards(v.deals) + '</div>' +
-          '<div class="rule"></div>' +
-          '<p class="small muted">' + esc(v.footer) + '</p>' +
+          '<div class="receipts">' + receipts + '</div>' +
+        '</div>' +
+        '<div class="card__foot">' +
+          '<span class="small">' + esc(v.footer) + '</span>' +
         '</div>' +
       '</div>' +
       '<div class="card">' +
         '<div class="card__head">' +
-          '<span class="card__title">Your run so far</span>' +
-          '<span class="card__meta tnum">' + esc(v.summary[1].value) + ' points</span>' +
+          '<span class="card__title">Your run</span>' +
+          '<span class="card__meta tnum">' + esc(v.summary[1].value) + ' pts</span>' +
         '</div>' +
         '<div class="card__body">' +
           '<table class="summary-table"><tbody>' +
@@ -508,12 +490,9 @@
               return '<tr><td>' + esc(row.label) + '</td><td>' + esc(row.value) + '</td></tr>';
             }).join('') +
           '</tbody></table>' +
-          '<div class="rule"></div>' +
-          '<p class="small muted">' + esc(v.close) + '</p>' +
         '</div>' +
         '<div class="card__foot">' +
-          '<span class="small muted">Six skill scores and a leaderboard arrive at the ' +
-            'Report stage.</span>' +
+          '<span class="small">' + esc(v.close) + '</span>' +
           '<button class="btn" data-action="restart" data-payload="{}">Run it again</button>' +
         '</div>' +
       '</div>';
@@ -530,17 +509,21 @@
     else if (v.kind === 'brief') main = renderBrief(v);
     else main = renderDealBook(v);
 
+    /* .app is the full-height frame: the footer is pinned by main growing, so a
+       short screen has no void under it. The topbar breaks out of the content
+       column so the rail has room for all eleven marks on one line. */
     app.innerHTML = '' +
-      '<div class="shell">' +
-        renderTopbar() +
-        '<div class="body">' +
-          '<main class="main">' + main + '</main>' +
-          renderRail() +
+      '<div class="app">' +
+        '<div class="topbar-wrap">' + renderTopbar() + '</div>' +
+        '<div class="shell">' +
+          renderCompanion() +
+          '<main class="main' + (v.kind === 'welcome' && v.screen === 'title'
+            ? ' main--centred' : '') + '">' + main + '</main>' +
+          '<footer class="footer">' +
+            '<span>Ashford &amp; Rowe \u00b7 Meera Sethi, Managing Director</span>' +
+            '<span>Career Discovery Program</span>' +
+          '</footer>' +
         '</div>' +
-        '<footer class="footer">' +
-          '<span>Investment Banking Simulation \u00b7 Career Discovery Program \u00b7 FinTree</span>' +
-          '<span>Three-stage sample</span>' +
-        '</footer>' +
       '</div>' +
       '<div class="toast-host" id="toasts" aria-live="polite"></div>';
 
@@ -558,9 +541,7 @@
     var ready = draft.name.trim().length > 0 && draft.nda;
     button.disabled = !ready;
     if (status) {
-      status.textContent = ready
-        ? 'Ready.'
-        : 'Add a name and sign the note to continue.';
+      status.textContent = ready ? 'Ready.' : 'Add a name and sign the note.';
     }
   }
 

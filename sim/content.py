@@ -1,15 +1,15 @@
 """Content loading and validation.
 
-This sample ships one content file — the briefing — and it is data with no
-logic in it. This module is the only place that knows how to read it, and it
-validates the whole shape at import time, so a malformed file fails loudly
-when the server starts rather than quietly halfway through a player's run.
+This build ships one content file — the briefing — and it is data with no logic
+in it. This module is the only place that knows how to read it, and it validates
+the whole shape at import time, so a malformed file fails loudly when the server
+starts rather than quietly halfway through a player's run.
 
-The full programme carries the same idea further. Blueprint p19: "Each deal is
-one data file: brief, terminal pages, documents, options, scoring rules,
-outcome. New deals can be added later without code changes." A deal loader
-that did exactly that lived here until the sample was cut back to three
-stages; it is in the git history under the tag `with-prism-v1`.
+The same idea carries further in the full programme, where each deal is one data
+file: brief, terminal pages, documents, options, scoring rules, outcome, so a new
+deal can be added without code changes. A loader that did exactly that lived here
+until the build was cut back to three stages; it is in the git history under the
+tag `with-prism-v1`.
 """
 
 from __future__ import annotations

@@ -7,7 +7,7 @@ simple and worth stating plainly:
     a field that would let the player skip the thinking is not in the payload
     until they have done the thinking.
 
-In practice, in this three-stage sample:
+In practice:
 
   * the quiz question carries its options but **not** the answer index, and
     `correct_index` / `why` stay null until the question has been answered
@@ -16,7 +16,7 @@ In practice, in this three-stage sample:
   * the Deal Book lists the five mandates but carries nothing about how any
     of them turns out
 
-Only the section for the current stage is built, so a future stage is not
+Only the section for the current stage is built, so another stage is not
 merely hidden by the CSS — it is not in the response.
 """
 
@@ -26,12 +26,15 @@ from typing import Any
 
 from . import content, rules, state as state_mod
 
-# The stage rail. `stage` is None for the parts this sample does not build;
-# they still render, dashed, so the shape of the full programme stays visible.
+# The stage rail shows the shape of the whole programme, so a player can see
+# where the run is going. Stages past the Deal Book are `stage: None` and render
+# as locked: they carry a mark, a number and a name, and nothing else. They are
+# never clickable, and no label, hint or tooltip is built for them, so the
+# payload says no more about them than the shape.
 CHIPS: tuple[dict[str, Any], ...] = (
     {"n": 1, "label": "Welcome", "stage": "welcome"},
     {"n": 2, "label": "Brief", "stage": "brief"},
-    {"n": 3, "label": "Deal Book", "stage": "dealbook"},
+    {"n": 3, "label": "Desk", "stage": "dealbook"},
     {"n": 4, "label": "Prism", "stage": None},
     {"n": 5, "label": "Vault", "stage": None},
     {"n": 6, "label": "Cedar", "stage": None},
@@ -45,20 +48,19 @@ CHIPS: tuple[dict[str, Any], ...] = (
 WELCOME_SCREENS = ("title", "identity", "role", "desk")
 
 ROLE_CARDS = (
-    ("Buy", "A client wants to acquire a company. You value it, find the risks, and set a price."),
-    ("Sell", "A client wants to exit. You run the process and get the best price."),
-    ("Raise money", "A client needs capital. You find the investors and agree the terms."),
-    ("Fix a company in trouble", "A client cannot pay its debts. You restructure what it owes."),
+    ("Buy", "A client wants to acquire a company."),
+    ("Sell", "A client wants to exit."),
+    ("Raise money", "A client needs investors."),
+    ("Fix a company", "A client cannot pay its debts."),
 )
 
 TUTORIAL_SCRIPT = (
-    ("Meera", "Welcome to Ashford & Rowe. I am Meera, and I will be with you for the whole run."),
-    ("Meera", "Five clients have given us five jobs. For each one you will read the brief, "
-              "research the target, do one main task, and then make the call."),
-    ("Meera", "You always have three choices: go, go with protection, or walk away. "
-              "Walking away is a real answer."),
-    ("Meera", "One thing before we start. Not every deal on your desk is a good deal. "
-              "Your job is to know the difference."),
+    ("Meera", "Welcome to Ashford & Rowe. I am Meera, and I will be with you the whole run."),
+    ("Meera", "Five clients, five jobs. For each one you read the brief, research the "
+              "target, do one task, and make the call."),
+    ("Meera", "Three answers every time: go, go with protection, or walk away. Walking "
+              "away is a real answer."),
+    ("Meera", "Not every deal on your desk is a good deal. Knowing the difference is the job."),
 )
 
 
@@ -98,9 +100,6 @@ def _topbar(state: dict) -> dict[str, Any]:
     left = state_mod.seconds_left(state)
     return {
         "name": state["name"] or None,
-        # Always zero: this sample stops at the Deal Book, one stage before the
-        # first deal opens. The counter is here because it is part of the real
-        # programme's chrome, and hiding it would misrepresent the full build.
         "deals_done": 0,
         "deals_total": len(content.BRIEFING["deal_book"]),
         "points": state["points"],
@@ -115,11 +114,17 @@ def _topbar(state: dict) -> dict[str, Any]:
 
 
 def _chips(state: dict) -> list[dict[str, Any]]:
+    """The rail. Three states for a stage in the run, one for everything after.
+
+    `locked` is a different thing from `upcoming`. An upcoming stage is one the
+    player is going to reach; a locked one is not open to them at all, so it
+    reads as closed rather than as pending.
+    """
     here = state_mod.STAGE_ORDER.index(state["stage"])
     out: list[dict[str, Any]] = []
     for chip in CHIPS:
         if chip["stage"] is None:
-            chip_state = "unbuilt"
+            chip_state = "locked"
         else:
             there = state_mod.STAGE_ORDER.index(chip["stage"])
             chip_state = "active" if there == here else ("done" if there < here else "upcoming")
@@ -128,32 +133,35 @@ def _chips(state: dict) -> list[dict[str, Any]]:
 
 
 def _companion(state: dict) -> dict[str, str]:
+    """Meera's line. One sentence per screen, and never a repeat of the heading."""
     if state["stage"] == "welcome":
         lines = {
-            "title": "Five clients. Five decisions. Not every deal on your desk is a good one. "
-                     "Your job is to know the difference.",
-            "identity": "Sign in and pick how much help you want. You can change it later.",
-            "role": "Buy, sell, raise money, or fix a company in trouble. Today you are on the "
-                    "buy side.",
-            "desk": "Five mandates, still face down. The briefing room comes first.",
+            "title": "Five clients. Five decisions.",
+            "identity": "Sign in, then choose how much help you want.",
+            "role": "Four jobs. Yours today is the buy side.",
+            "desk": "Five mandates, face down. The words come first.",
         }
-        tag = f"Welcome · {state['w_sub']}"
+        tag = "Meera"
         line = lines.get(state["w_sub"], lines["title"])
     elif state["stage"] == "brief":
         lines = {
-            "briefing": "You do not need to know these by heart. You will see each one again "
-                        "inside a deal.",
-            "quiz": "Wrong answers cost you nothing but points. Read the explanation either way.",
+            "briefing": "You will meet each of these again inside a deal.",
+            "quiz": "A wrong answer costs points, nothing else.",
         }
-        tag = f"Briefing · {state['b_sub']}"
+        tag = "Meera"
         line = lines.get(state["b_sub"], lines["briefing"])
     else:
-        tag = "Deal Book · On your desk"
-        line = "Five mandates. Five sectors. One desk. This is where the sample stops."
+        tag = "Meera"
+        line = "This is where you stand."
     return {"tag": tag, "line": line}
 
 
 def _rail(state: dict) -> dict[str, Any]:
+    """Whole-run briefing progress: six words opened plus questions answered.
+
+    One number for the run, so a screen can show it without restating what the
+    screen already says. The client shows it on the Briefing Room only.
+    """
     briefing = content.BRIEFING
     total = len(briefing["words"]) + len(briefing["questions"])
     done = len(state["words_opened"]) + len(state["answers"])
@@ -178,16 +186,11 @@ def _welcome_view(state: dict) -> dict[str, Any]:
 
     if screen == "title":
         base.update({
-            "title": "Five real deals. Five industries. You make the calls.",
-            "lede": "You are the new analyst at Ashford & Rowe. Advise each client: go, "
-                    "go with protection, or walk away.",
+            "title": "Five real deals. You make the calls.",
+            "lede": "You are the new analyst at Ashford & Rowe.",
             "facts": ["About 40 minutes", "5 real deals", "Leaderboard"],
-            "note": "At the end, you find out which real companies these were.",
-            "footnote": "Best on a laptop. Keep 40 minutes free. Headphones help.",
+            "note": "At the end you find out which real companies these were.",
             "tutorial_open": state["tutorial"],
-            # The blueprint asks for a captioned tutorial video (p5) and a text
-            # altertrack for every voice moment (p19). There is no video in this
-            # sample, so the script itself is the accessible artefact.
             "tutorial": [{"speaker": s, "line": t} for s, t in TUTORIAL_SCRIPT],
         })
 
@@ -198,10 +201,10 @@ def _welcome_view(state: dict) -> dict[str, Any]:
             "guidance": state["guidance"],
             "codenames": [d["code"] for d in content.BRIEFING["deal_book"]],
             "modes": [
-                {"id": "normal", "name": "Normal guidance",
-                 "desc": "Meera explains the next action and why it matters."},
-                {"id": "less", "name": "Less guidance",
-                 "desc": "Meera stays quiet unless you ask. Same points either way."},
+                {"id": "normal", "name": "Normal",
+                 "desc": "Meera explains each step."},
+                {"id": "less", "name": "Less",
+                 "desc": "Meera stays quiet. Same points."},
             ],
             # Note: no `can_continue` here on purpose. The name and the tick are
             # a draft the browser holds until submit, so the button's enabled
@@ -289,12 +292,11 @@ def _brief_view(state: dict) -> dict[str, Any]:
 
 
 def _dealbook_view(state: dict) -> dict[str, Any]:
-    """The desk, and the end of this sample.
+    """The desk, and the end of the run.
 
-    The five mandates are listed and the open one is highlighted, but nothing
-    is clickable: opening a mandate is stage 4, and stage 4 is not built. A
-    button that does nothing would be worse than no button, so the closing
-    note says plainly where the sample stops.
+    The five mandates are listed and the open one is highlighted. A mandate is
+    not a button here: it has no page to go to yet, and a button that does
+    nothing is worse than no button.
     """
     briefing = content.BRIEFING
     scoring = rules.points_breakdown(state)
@@ -306,12 +308,20 @@ def _dealbook_view(state: dict) -> dict[str, Any]:
         "footer": briefing["deal_book_footer"],
         "close": briefing["deal_book_close"],
         "brief_done": state["brief_done"],
+        # The three receipt counters from the desk. They are the only place the
+        # run shows a deal tally, and they carry no outcome: a receipt says what
+        # happened to the process, never whether the client did well.
+        "receipts": [
+            {"label": "Closed", "value": state["deals_closed"]},
+            {"label": "Walked away", "value": state["deals_walked"]},
+            {"label": "Lost to rival", "value": state["deals_lost"]},
+        ],
         "summary": [
-            {"label": "Briefing answers correct",
+            {"label": "Answers correct",
              "value": f"{scoring['questions_correct']} of {scoring['questions_total']}"},
             {"label": "Points",
              "value": f"{scoring['points']} of {scoring['points_possible']}"},
-            {"label": "Guidance mode",
+            {"label": "Guidance",
              "value": "Less" if state["guidance"] == "less" else "Normal"},
         ],
     }
@@ -336,6 +346,5 @@ def build(state: dict) -> dict[str, Any]:
         "topbar": _topbar(state),
         "chips": _chips(state),
         "companion": _companion(state),
-        "rail": _rail(state),
         "view": view,
     }

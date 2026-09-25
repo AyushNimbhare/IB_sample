@@ -17,8 +17,9 @@ from typing import Any
 STATE_VERSION = 1
 TOTAL_SECONDS = 40 * 60
 
-# The three stages this sample implements, in order. The full programme has
-# eleven; stages 4-11 are shown as dashed chips in the rail and nothing more.
+# The three stages of the run, in order. The rail in sim/views.py is longer than
+# this — it shows the whole programme with the rest locked — so this tuple is the
+# set of stages a player can actually reach, not the length of the rail.
 STAGE_ORDER = ("welcome", "brief", "dealbook")
 
 
@@ -40,6 +41,13 @@ def blank_state() -> dict[str, Any]:
         "points": 0,
         "brief_done": False,
 
+        # Deal receipts. No deal has been played yet, so all three are zero —
+        # they exist so the desk reads as a real hub rather than an empty list,
+        # and so there is somewhere for a receipt to go.
+        "deals_closed": 0,
+        "deals_walked": 0,
+        "deals_lost": 0,
+
         "started_at": None,
     }
 
@@ -54,9 +62,9 @@ def seconds_left(state: dict[str, Any]) -> int:
 
     Computed from `started_at` rather than decremented, so the clock keeps
     honest time even if the tab is closed and reopened. It is display-only in
-    this sample: it clamps at zero and never blocks the run, because the
-    blueprint specifies expiry behaviour for only one of its three clocks
-    (p6) and a dead demo is worse than an honest one.
+    this build: it clamps at zero and never blocks the run, because the brief
+    defines an expiry rule for only one of its three clocks and a dead demo is
+    worse than an honest one.
     """
     started = state.get("started_at")
     if not started:
