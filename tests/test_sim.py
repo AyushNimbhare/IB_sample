@@ -10,6 +10,10 @@ player has done the thing that earns the move. The interesting part is
 TestPrivacy, which asserts the claim the whole architecture exists to
 support — that a player who reads every byte the browser receives still
 does not know the answer.
+
+The sample covers three stages: Welcome, Briefing Room and Deal Book. The
+deal stages were cut, so the deal gates went with them; what is left is the
+whole of what ships.
 """
 
 from __future__ import annotations
@@ -22,22 +26,41 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import app  # noqa: E402
-from sim import content, rules  # noqa: E402
+from sim import content, rules, state as state_mod  # noqa: E402
 
-DEAL = content.get_deal(content.FIRST_DEAL_ID)
-TASK = DEAL["task"]
-CALL = DEAL["call"]
-QUESTIONS = content.BRIEFING["questions"]
+BRIEFING = content.BRIEFING
+QUESTIONS = BRIEFING["questions"]
 QUESTION_COUNT = len(QUESTIONS)
-WRONG_METRIC = [m["id"] for m in TASK["metrics"] if m["id"] != TASK["correct_metric"]][0]
+WORDS = BRIEFING["words"]
+DEAL_BOOK = BRIEFING["deal_book"]
+
+BUILT_ACTIONS = [
+    "brief.answer",
+    "brief.next_question",
+    "brief.open",
+    "brief.open_word",
+    "brief.reveal_all",
+    "brief.start_quiz",
+    "guidance.set",
+    "restart",
+    "welcome.identity.submit",
+    "welcome.next",
+    "welcome.tutorial",
+]
+
+# Exactly the fields the desk is allowed to show for a mandate.
+MANDATE_KEYS = {"code", "sector", "year", "status", "note", "open"}
 
 
-def first_evidence_text() -> str:
-    """The first research item a player is allowed to save. Page 0 has none."""
-    for page in DEAL["terminal"]["pages"]:
-        if page.get("items"):
-            return page["items"][0]["text"]
-    raise AssertionError("the deal ships no evidence items at all")
+def _all_keys(node):
+    """Every key name anywhere in a payload, at any depth."""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            yield key
+            yield from _all_keys(value)
+    elif isinstance(node, list):
+        for item in node:
+            yield from _all_keys(item)
 
 
 class Base(unittest.TestCase):
@@ -84,10 +107,16 @@ class Base(unittest.TestCase):
 
     # -- journeys ---------------------------------------------------------
 
-    def reach_brief(self):
+    def sign_in(self):
         self.ok("welcome.next")
         self.ok("welcome.identity.submit", {"name": "A. Nimbhare", "nda": True})
+
+    def reach_desk(self):
+        self.sign_in()
         self.ok("welcome.next")
+
+    def reach_brief(self):
+        self.reach_desk()
         self.ok("brief.open")
 
     def reach_quiz(self):
@@ -96,6 +125,7 @@ class Base(unittest.TestCase):
         self.ok("brief.start_quiz")
 
     def answer_all(self, wrong_first: bool = False):
+        """Answer everything. The last next_question hands over the desk."""
         for i in range(QUESTION_COUNT):
             q = QUESTIONS[i]
             pick = q["answer"]
@@ -104,28 +134,38 @@ class Base(unittest.TestCase):
             self.ok("brief.answer", {"index": pick})
             self.ok("brief.next_question")
 
-    def reach_deal(self):
+    def reach_dealbook(self):
         self.reach_quiz()
         self.answer_all()
-        self.ok("deal.open", {"deal_id": content.FIRST_DEAL_ID})
 
-    def reach_task(self):
-        """The metric grid only exists on the task step, not on the brief."""
-        self.reach_deal()
-        self.ok("deal.step", {"step": "task"})
 
-    def pick_right_metric(self):
-        self.ok("deal.pick_metric", {"metric_id": TASK["correct_metric"]})
+# ---------------------------------------------------------------------------
+# Content
+# ---------------------------------------------------------------------------
 
-    def make_call(self, choice: str = "protect"):
-        self.pick_right_metric()
-        self.ok("deal.step", {"step": "call"})
-        self.ok("deal.pick_call", {"choice_id": choice})
-        if choice == "protect":
-            self.ok("deal.toggle_protection", {"protection_id": CALL["protections"][0]["id"]})
-        if choice != "walk":
-            self.ok("deal.price", {"delta": 0})
-        self.ok("deal.pick_reason", {"reason_id": CALL["reasons"][0]["id"]})
+
+class TestContent(Base):
+    """The data file is the content. These check it says what it must."""
+
+    def test_the_answer_index_points_at_a_real_option(self):
+        for q in QUESTIONS:
+            self.assertTrue(0 <= q["answer"] < len(q["options"]),
+                            f"{q['id']}: answer {q['answer']} is outside {len(q['options'])} options")
+
+    def test_every_question_explains_itself(self):
+        for q in QUESTIONS:
+            self.assertTrue(q["why"].strip(), f"{q['id']} has no explanation")
+
+    def test_the_desk_has_exactly_one_open_mandate(self):
+        self.assertEqual(len([d for d in DEAL_BOOK if d["status"] == "open"]), 1)
+        self.assertEqual(len(DEAL_BOOK), 5)
+
+    def test_mandate_codenames_are_unique(self):
+        codes = [d["code"] for d in DEAL_BOOK]
+        self.assertEqual(len(set(codes)), len(codes))
+
+    def test_the_sample_ends_with_a_closing_note(self):
+        self.assertTrue(BRIEFING["deal_book_close"].strip())
 
 
 # ---------------------------------------------------------------------------
@@ -181,19 +221,35 @@ class TestWelcomeGate(Base):
         self.ok("brief.open")         # now it opens
         self.assertEqual(self.state()["stage"], "brief")
 
-    def test_the_desk_cannot_be_left_without_opening_a_deal(self):
+    def test_the_briefing_room_cannot_be_reopened(self):
+        """Regression: `w_sub` stays on "desk" for the whole run.
+
+        So `brief.open` still looked legal from inside the briefing room, and
+        a replay reset b_sub to "briefing" — wiping the quiz behind it.
+        """
         self.reach_brief()
+        self.ok("brief.reveal_all")
+        self.ok("brief.start_quiz")
+
+        self.denied("brief.open")
+        self.assertEqual(self.view()["screen"], "quiz", "the quiz was reset by a replay")
+
+    def test_the_desk_cannot_be_left_without_opening_the_briefing_room(self):
+        self.reach_desk()
         self.denied("welcome.next")
+
+    def test_the_clock_starts_when_the_analyst_signs_in(self):
+        self.assertEqual(self.state()["topbar"]["seconds_left"], state_mod.TOTAL_SECONDS)
+        self.sign_in()
+        left = self.state()["topbar"]["seconds_left"]
+        self.assertLessEqual(left, state_mod.TOTAL_SECONDS)
+        self.assertGreater(left, state_mod.TOTAL_SECONDS - 60)
 
 
 class TestBriefingGate(Base):
     def test_the_quiz_needs_every_word_opened(self):
         self.reach_brief()
         self.assertIn("six", self.denied("brief.start_quiz")["error"])
-
-    def test_the_deal_needs_the_briefing_finished(self):
-        self.reach_brief()
-        self.denied("deal.open", {"deal_id": content.FIRST_DEAL_ID})
 
     def test_a_question_cannot_be_answered_twice(self):
         self.reach_quiz()
@@ -205,83 +261,99 @@ class TestBriefingGate(Base):
         for bad in (99, -1, "0", None):
             self.denied("brief.answer", {"index": bad})
 
+    def test_a_boolean_is_not_an_answer(self):
+        """`True == 1` in Python, so an unchecked isinstance would score a
+        client that sent `{"index": true}` on question 2."""
+        self.reach_quiz()
+        self.denied("brief.answer", {"index": True})
+        self.denied("brief.answer", {"index": False})
+
     def test_the_next_question_needs_this_one_answered(self):
         self.reach_quiz()
         self.denied("brief.next_question")
 
-    def test_only_the_sample_deal_is_open(self):
+    def test_an_unknown_word_card_is_refused(self):
+        self.reach_brief()
+        self.denied("brief.open_word", {"word_id": "not-a-word"})
+
+    def test_word_cards_cannot_be_toggled_from_outside_the_briefing_room(self):
+        self.reach_dealbook()
+        self.denied("brief.open_word", {"word_id": WORDS[0]["id"]})
+        self.denied("brief.reveal_all")
+        self.denied("brief.start_quiz")
+
+    def test_the_quiz_cannot_be_restarted_from_the_deal_book(self):
+        self.reach_dealbook()
+        self.denied("brief.answer", {"index": 0})
+        self.denied("brief.next_question")
+
+
+class TestDealBook(Base):
+    def test_the_last_question_hands_over_the_desk(self):
         self.reach_quiz()
-        self.answer_all()
-        self.denied("deal.open", {"deal_id": "not-a-real-deal"})
+        for i, q in enumerate(QUESTIONS):
+            self.ok("brief.answer", {"index": q["answer"]})
+            self.ok("brief.next_question")
+            expected = "dealbook" if i == QUESTION_COUNT - 1 else "brief"
+            self.assertEqual(self.state()["stage"], expected,
+                             f"stage after question {i + 1} was {self.state()['stage']}")
 
+    def test_the_deal_book_is_the_third_chip(self):
+        chips = {c["n"]: c["state"] for c in self.state()["chips"]}
+        self.assertEqual(len(chips), 11, "the full programme is eleven stages")
+        self.assertEqual(chips[1], "active")
+        self.assertEqual(chips[3], "upcoming")
+        self.assertEqual(chips[4], "unbuilt")
 
-class TestDealGates(Base):
-    def test_the_call_needs_the_right_metric(self):
-        self.reach_deal()
-        self.ok("deal.step", {"step": "task"})
-        self.assertIn("metric", self.denied("deal.step", {"step": "call"})["error"])
+        self.reach_dealbook()
+        chips = {c["n"]: c["state"] for c in self.state()["chips"]}
+        self.assertEqual(chips[1], "done")
+        self.assertEqual(chips[2], "done")
+        self.assertEqual(chips[3], "active")
+        self.assertEqual(chips[4], "unbuilt", "stage 4 is not built and must not look built")
 
-    def test_receipt_is_not_a_navigable_step(self):
-        self.reach_deal()
-        self.assertIn("not a step", self.denied("deal.step", {"step": "receipt"})["error"])
+    def test_the_deal_book_lists_the_whole_desk(self):
+        self.reach_dealbook()
+        v = self.view()
+        self.assertEqual(v["kind"], "dealbook")
+        self.assertEqual(len(v["deals"]), len(DEAL_BOOK))
+        self.assertEqual(len([d for d in v["deals"] if d["open"]]), 1)
 
-    def test_the_review_needs_a_complete_call(self):
-        self.reach_deal()
-        self.pick_right_metric()
-        self.ok("deal.step", {"step": "call"})
-        self.denied("deal.step", {"step": "review"})   # nothing chosen yet
+    def test_the_deal_book_reports_the_run(self):
+        self.reach_dealbook()
+        v = self.view()
+        labels = [row["label"] for row in v["summary"]]
+        self.assertIn("Briefing answers correct", labels)
+        self.assertIn("Points", labels)
+        self.assertIn("4 of 4", dict((r["label"], r["value"]) for r in v["summary"])
+                      ["Briefing answers correct"])
 
-    def test_a_protection_call_needs_a_protection(self):
-        self.reach_deal()
-        self.pick_right_metric()
-        self.ok("deal.step", {"step": "call"})
-        self.ok("deal.pick_call", {"choice_id": "protect"})
-        self.ok("deal.pick_reason", {"reason_id": CALL["reasons"][0]["id"]})
-        self.ok("deal.price", {"delta": 0})
-        self.denied("deal.step", {"step": "review"})
+    def test_the_deal_book_is_terminal(self):
+        self.reach_dealbook()
+        for action, payload in (
+            ("brief.open", {}),
+            ("brief.open_word", {"word_id": WORDS[0]["id"]}),
+            ("brief.reveal_all", {}),
+            ("brief.start_quiz", {}),
+            ("brief.answer", {"index": 0}),
+            ("brief.next_question", {}),
+            ("welcome.next", {}),
+        ):
+            self.denied(action, payload)
+        self.assertEqual(self.state()["stage"], "dealbook")
 
-    def test_walking_away_needs_no_price_and_no_protection(self):
-        self.reach_deal()
-        self.pick_right_metric()
-        self.ok("deal.step", {"step": "call"})
-        self.ok("deal.pick_call", {"choice_id": "walk"})
-        self.ok("deal.pick_reason", {"reason_id": CALL["reasons"][0]["id"]})
-        self.ok("deal.step", {"step": "review"})       # complete without either
+    def test_restart_returns_to_the_title(self):
+        self.reach_dealbook()
+        self.ok("restart")
+        state = self.state()
+        self.assertEqual(state["stage"], "welcome")
+        self.assertEqual(state["view"]["screen"], "title")
+        self.assertEqual(state["topbar"]["points"], 0)
 
-    def test_protections_only_apply_to_a_protection_call(self):
-        self.reach_deal()
-        self.pick_right_metric()
-        self.ok("deal.step", {"step": "call"})
-        self.ok("deal.pick_call", {"choice_id": "walk"})
-        self.denied("deal.toggle_protection", {"protection_id": CALL["protections"][0]["id"]})
-
-    def test_locking_needs_the_review(self):
-        self.reach_deal()
-        self.make_call()
-        self.denied("deal.lock")                       # still on the call step
-
-    def test_a_locked_call_cannot_be_edited(self):
-        self.reach_deal()
-        self.make_call()
-        self.ok("deal.step", {"step": "review"})
-        self.ok("deal.lock")
-        self.denied("deal.pick_call", {"choice_id": "walk"})
-        self.denied("deal.price", {"delta": 10})
-        self.denied("deal.note", {"text": "changed my mind"})
-        self.denied("deal.lock")                       # and cannot lock twice
-
-    def test_evidence_must_come_from_the_deal(self):
-        self.reach_deal()
-        self.ok("deal.step", {"step": "research"})
-        self.denied("deal.save_evidence", {"kind": "fact", "text": "I made this up"})
-        self.denied("deal.save_evidence", {"kind": "vibe", "text": "anything"})
-
-    def test_evidence_can_be_saved_once(self):
-        self.reach_deal()
-        self.ok("deal.step", {"step": "research"})
-        text = first_evidence_text()
-        self.ok("deal.save_evidence", {"kind": "fact", "text": text})
-        self.denied("deal.save_evidence", {"kind": "fact", "text": text})
+    def test_no_deal_actions_are_registered(self):
+        """The Prism stage was cut, so nothing under `deal.` should remain."""
+        self.assertEqual(rules.known_actions(), BUILT_ACTIONS)
+        self.assertFalse([a for a in rules.known_actions() if a.startswith("deal.")])
 
 
 # ---------------------------------------------------------------------------
@@ -293,7 +365,7 @@ class TestScoring(Base):
     def test_a_perfect_run_scores_every_point(self):
         self.reach_quiz()
         self.answer_all()
-        expected = QUESTION_COUNT * content.BRIEFING["points_per_question"]
+        expected = QUESTION_COUNT * BRIEFING["points_per_question"]
         self.assertEqual(self.state()["topbar"]["points"], expected)
 
     def test_a_wrong_answer_scores_nothing_but_still_explains(self):
@@ -318,50 +390,7 @@ class TestScoring(Base):
                            {"index": QUESTIONS[0]["answer"], "points": 9999, "correct": True})
         self.assertEqual(code, 200)
         self.assertEqual(self.state()["topbar"]["points"],
-                         content.BRIEFING["points_per_question"])
-
-
-# ---------------------------------------------------------------------------
-# Price
-# ---------------------------------------------------------------------------
-
-
-class TestPrice(Base):
-    def setUp(self):
-        super().setUp()
-        self.reach_deal()
-        self.pick_right_metric()
-        self.ok("deal.step", {"step": "call"})
-        self.ok("deal.pick_call", {"choice_id": "protect"})
-
-    def test_the_price_is_clamped_to_the_slider(self):
-        self.ok("deal.price", {"delta": 10 ** 9})
-        self.assertEqual(self.view()["call"]["range"]["marker_left_pct"], 100.0)
-
-        self.ok("deal.price", {"delta": -10 ** 9})
-        self.assertEqual(self.view()["call"]["range"]["marker_left_pct"], 0.0)
-
-    def test_a_non_numeric_delta_is_refused(self):
-        self.denied("deal.price", {"delta": "lots"})
-        self.denied("deal.price", {"delta": None})
-
-    def test_the_fair_range_is_derived_from_the_comparables(self):
-        low, high = rules.fair_range(DEAL)
-        per_user = [p["value"] for p in TASK["per_user"]]
-        self.assertEqual(low, min(per_user) * TASK["users_m"])
-        self.assertEqual(high, max(per_user) * TASK["users_m"])
-
-    def test_the_slider_contains_the_fair_range(self):
-        low, high = rules.fair_range(DEAL)
-        self.assertLessEqual(TASK["price_min_m"], low)
-        self.assertGreaterEqual(TASK["price_max_m"], high)
-
-    def test_the_band_is_drawn_where_the_server_scored_it(self):
-        low, high = rules.fair_range(DEAL)
-        r = self.view()["call"]["range"]
-        span = TASK["price_max_m"] - TASK["price_min_m"]
-        self.assertAlmostEqual(r["band_left_pct"], (low - TASK["price_min_m"]) / span * 100, places=1)
-        self.assertAlmostEqual(r["band_width_pct"], (high - low) / span * 100, places=1)
+                         BRIEFING["points_per_question"])
 
 
 # ---------------------------------------------------------------------------
@@ -406,115 +435,62 @@ class TestPrivacy(Base):
         self.assertEqual(v["correct_index"], q["answer"])
         self.assertTrue(v["why"])
 
-    def test_the_right_call_never_leaves_the_server(self):
-        """The single most important assertion in this file."""
-        secret = TASK["right_call"]
-        self.assertTrue(secret, "the deal has no right_call to protect")
+    def test_no_explanation_leaves_the_server_before_its_answer(self):
+        """The strongest form of the claim, over a whole run.
 
-        bodies = [self.raw()]
-
-        self.reach_quiz()
-        bodies.append(self.raw())
-        for q in QUESTIONS:
-            r = self.c.post("/api/action", json={"action": "brief.answer",
-                                                 "payload": {"index": q["answer"]}})
-            bodies.append(r.get_data(as_text=True))
-            r = self.c.post("/api/action", json={"action": "brief.next_question", "payload": {}})
-            bodies.append(r.get_data(as_text=True))
-
-        for action, payload in [
-            ("deal.open", {"deal_id": content.FIRST_DEAL_ID}),
-            ("deal.step", {"step": "research"}),
-            ("deal.step", {"step": "task"}),
-            ("deal.pick_metric", {"metric_id": TASK["correct_metric"]}),
-            ("deal.step", {"step": "call"}),
-            ("deal.pick_call", {"choice_id": "protect"}),
-            ("deal.toggle_protection", {"protection_id": CALL["protections"][0]["id"]}),
-            ("deal.price", {"delta": 0}),
-            ("deal.pick_reason", {"reason_id": CALL["reasons"][0]["id"]}),
-            ("deal.step", {"step": "review"}),
-            ("deal.lock", {}),
-        ]:
-            r = self.c.post("/api/action", json={"action": action, "payload": payload})
-            bodies.append(r.get_data(as_text=True))
-        bodies.append(self.raw())
-
-        for i, body in enumerate(bodies):
-            self.assertNotIn(secret, body, f"right_call leaked in response #{i}")
-
-    def test_the_metric_grid_is_unmarked_before_a_pick(self):
-        self.reach_task()
-        task = self.view()["task"]
-        for m in task["metrics"]:
-            self.assertEqual(m["state"], "idle", f"{m['id']} was marked before it was picked")
-            self.assertNotIn("correct", m, f"{m['id']} carries a correctness flag")
-
-    def test_the_fair_range_is_absent_until_the_metric_is_right(self):
-        self.reach_task()
-        self.assertNotIn("range", self.view()["task"], "the range was sent before the metric")
-        self.assertFalse(self.view()["task"]["show_range"])
-
-        # A wrong pick must not reveal the range either.
-        self.ok("deal.pick_metric", {"metric_id": WRONG_METRIC})
-        self.assertNotIn("range", self.view()["task"], "a wrong pick revealed the range")
-
-        self.pick_right_metric()
-        self.assertIn("range", self.view()["task"])
-
-    def test_the_per_user_comparables_are_absent_until_the_metric_is_right(self):
-        self.reach_task()
-        self.assertNotIn("per_user", self.view()["task"])
-
-    def test_a_wrong_metric_pick_does_not_strand_the_player(self):
-        """Regression: the first version locked the grid on any first pick.
-
-        Choosing 'Revenue' disabled every metric button, including the right
-        one, so the call step became unreachable.
+        Every response body is kept, and each question's explanation is
+        checked against all of them. It may only appear in a body sent after
+        that question was answered.
         """
-        self.reach_task()
-        self.ok("deal.pick_metric", {"metric_id": WRONG_METRIC})
+        seen: list[str] = [self.raw()]
+        self.reach_quiz()
+        seen.append(self.raw())
 
-        task = self.view()["task"]
-        self.assertFalse(task["can_continue"], "a wrong pick should not unlock the call")
-        self.assertTrue(task["explanation"], "a wrong pick should explain itself")
-        self.assertEqual(len(task["metrics"]), len(TASK["metrics"]))
+        for q in QUESTIONS:
+            for i, body in enumerate(seen):
+                self.assertNotIn(q["why"], body,
+                                 f"the explanation for {q['id']} leaked in response #{i}")
 
-        # The right pick still works afterwards.
-        self.pick_right_metric()
-        self.assertTrue(self.view()["task"]["can_continue"])
+            _, body = self.act("brief.answer", {"index": q["answer"]})
+            seen.append(json.dumps(body))
+            _, body = self.act("brief.next_question")
+            seen.append(json.dumps(body))
 
-    def test_a_correct_pick_cannot_be_changed(self):
-        self.reach_deal()
-        self.pick_right_metric()
-        self.denied("deal.pick_metric", {"metric_id": WRONG_METRIC})
+        # And the whole quiz is accounted for, so the loop above cannot pass
+        # by never running.
+        self.assertEqual(len(seen), 2 + 2 * QUESTION_COUNT)
 
-    def test_the_outcome_is_not_in_the_receipt(self):
-        """The receipt records what you decided, not whether it was right."""
-        self.reach_deal()
-        self.make_call()
-        self.ok("deal.step", {"step": "review"})
-        self.ok("deal.lock")
-
+    def test_the_deal_book_does_not_replay_the_quiz(self):
+        self.reach_dealbook()
         raw = self.raw()
-        self.assertNotIn(TASK["right_call"], raw)
+        for q in QUESTIONS:
+            self.assertNotIn(q["why"], raw, f"the Deal Book repeats {q['id']}'s explanation")
+            self.assertNotIn(q["prompt"], raw, f"the Deal Book repeats {q['id']}'s prompt")
 
-        receipt = self.view()["receipt"]
-        self.assertTrue(receipt)
-        for key in ("correct", "right", "wrong", "outcome", "score", "verdict"):
-            self.assertNotIn(key, receipt, f"the receipt has a '{key}' field")
+    def test_the_deal_book_holds_no_outcome(self):
+        """The mandates are listed by codename. Nothing says how any ends.
 
-    def test_the_evidence_tray_cannot_be_filled_with_arbitrary_text(self):
-        self.reach_deal()
-        self.ok("deal.step", {"step": "research"})
-        self.denied("deal.save_evidence",
-                    {"kind": "fact", "text": "<script>alert(1)</script>"})
+        This scans the payload's *keys*, not its prose: the closing note
+        legitimately contains the word "outcome" when it says the outcome is
+        sealed until the Truth stage. What must not exist is a field carrying
+        one.
+        """
+        self.reach_dealbook()
+        v = self.view()
+        for row in v["deals"]:
+            self.assertEqual(
+                set(row), MANDATE_KEYS,
+                f"{row['code']} carries more than the desk shows: {sorted(row)}")
 
-    def test_the_note_is_truncated_to_the_limit(self):
-        self.reach_deal()
-        self.make_call()
-        self.ok("deal.step", {"step": "review"})
-        self.ok("deal.note", {"text": "x" * (CALL["note_max"] + 500)})
-        self.assertEqual(len(self.view()["review"]["note"]), CALL["note_max"])
+        keys = set(_all_keys(json.loads(self.raw())))
+        for forbidden in ("right_call", "right_metric", "outcome", "verdict", "correct"):
+            self.assertNotIn(forbidden, keys, f"the payload has a '{forbidden}' field")
+
+    def test_the_deal_book_names_every_mandate(self):
+        self.reach_dealbook()
+        raw = self.raw()
+        for row in DEAL_BOOK:
+            self.assertIn(row["code"], raw, f"{row['code']} is missing from the desk")
 
     def test_one_session_cannot_read_another(self):
         other = app.test_client()
@@ -543,9 +519,10 @@ class TestPlumbing(Base):
 
     def test_health_describes_the_build(self):
         h = self.c.get("/api/health").get_json()
-        self.assertEqual(h["stages_built"], ["welcome", "brief", "prism"])
-        self.assertEqual(h["first_deal"], content.FIRST_DEAL_ID)
-        self.assertIn("deal.lock", h["actions"])
+        self.assertEqual(h["stages_built"], ["welcome", "brief", "dealbook"])
+        self.assertEqual(h["stages_in_programme"], 11)
+        self.assertEqual(h["mandates"], [d["code"] for d in DEAL_BOOK])
+        self.assertIn("brief.answer", h["actions"])
 
     def test_the_index_renders_and_is_noindex(self):
         self.assertIn("noindex", self.raw("/"))
@@ -556,14 +533,21 @@ class TestPlumbing(Base):
     def test_the_view_layer_carries_no_answer_key(self):
         """ib.js must not hold a copy of the answers it is not allowed to know.
 
-        Metric *ids* are fine here — they are button names, and the client is
-        meant to render them. What must not be present is anything that says
-        which one is right, or how the deal really ended.
+        What must not be present is anything that says which option is right,
+        or how any mandate turns out.
         """
         src = self.raw("/static/ib.js")
-        self.assertNotIn(TASK["right_call"], src)
         for q in QUESTIONS:
             self.assertNotIn(q["why"], src, f"ib.js contains the explanation for {q['id']}")
+            self.assertNotIn(q["prompt"], src, f"ib.js contains the prompt for {q['id']}")
+
+    def test_the_client_holds_no_dead_deal_markup(self):
+        """The Prism stage was cut; the client should not still be able to
+        render it, or post to it."""
+        src = self.raw("/static/ib.js")
+        for stale in ("renderPrism", "prismResearch", "rangeBar", "deal.open",
+                      "deal.pick_metric", "deal.lock", "deal.save_evidence"):
+            self.assertNotIn(stale, src, f"ib.js still references {stale}")
 
 
 if __name__ == "__main__":

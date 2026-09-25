@@ -7,16 +7,17 @@ simple and worth stating plainly:
     a field that would let the player skip the thinking is not in the payload
     until they have done the thinking.
 
-In practice:
+In practice, in this three-stage sample:
 
   * the quiz question carries its options but **not** the answer index, and
     `correct_index` / `why` stay null until the question has been answered
-  * the metric grid carries four numbers but **not** which one is right
-  * the fair range is absent until the right metric has been picked
-  * the deal's `right_call` never appears in any payload at all
+  * only the question the player is on is built at all — the rest are absent
+    from the response, not hidden by the CSS
+  * the Deal Book lists the five mandates but carries nothing about how any
+    of them turns out
 
-Only the section for the current step is built, so a future step is not merely
-hidden by the CSS — it is not in the response.
+Only the section for the current stage is built, so a future stage is not
+merely hidden by the CSS — it is not in the response.
 """
 
 from __future__ import annotations
@@ -30,8 +31,8 @@ from . import content, rules, state as state_mod
 CHIPS: tuple[dict[str, Any], ...] = (
     {"n": 1, "label": "Welcome", "stage": "welcome"},
     {"n": 2, "label": "Brief", "stage": "brief"},
-    {"n": 3, "label": "Deal Book", "stage": "brief"},
-    {"n": 4, "label": "Prism", "stage": "prism"},
+    {"n": 3, "label": "Deal Book", "stage": "dealbook"},
+    {"n": 4, "label": "Prism", "stage": None},
     {"n": 5, "label": "Vault", "stage": None},
     {"n": 6, "label": "Cedar", "stage": None},
     {"n": 7, "label": "Anvil", "stage": None},
@@ -42,17 +43,6 @@ CHIPS: tuple[dict[str, Any], ...] = (
 )
 
 WELCOME_SCREENS = ("title", "identity", "role", "desk")
-
-STEP_LABELS = {
-    "brief": "Brief",
-    "research": "Research",
-    "task": "Task",
-    "call": "Your call",
-    "review": "Review",
-    "receipt": "Receipt",
-}
-
-STEP_OF = {"brief": 1, "research": 2, "task": 3, "call": 4, "review": 4, "receipt": 4}
 
 ROLE_CARDS = (
     ("Buy", "A client wants to acquire a company. You value it, find the risks, and set a price."),
@@ -77,28 +67,26 @@ TUTORIAL_SCRIPT = (
 # ---------------------------------------------------------------------------
 
 
-def money(millions: float | None) -> str:
-    """Millions of USD -> '$540M', '$1.5B', '$1B'."""
-    if millions is None:
-        return "—"
-    if millions >= 1000:
-        billions = millions / 1000
-        if abs(billions - round(billions)) < 1e-9:
-            return f"${billions:,.0f}B"
-        return f"${billions:,.1f}B"
-    return f"${millions:,.0f}M"
-
-
-def _pct(value: float, low: float, high: float) -> float:
-    if high <= low:
-        return 0.0
-    return round(max(0.0, min(100.0, (value - low) / (high - low) * 100)), 2)
-
-
 def _clock_label(seconds: int) -> str:
     if seconds <= 0:
         return "Time up"
     return f"{-(-seconds // 60)} min"
+
+
+def _mandates(briefing: dict) -> list[dict[str, Any]]:
+    """The desk, as the client draws it. Shared by the welcome desk screen and
+    the Deal Book, so the two can never disagree about what is on the desk."""
+    return [
+        {
+            "code": d["code"],
+            "sector": d["sector"],
+            "year": d["year"],
+            "status": d["status"],
+            "note": d["note"],
+            "open": d["status"] == "open",
+        }
+        for d in briefing["deal_book"]
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -107,12 +95,14 @@ def _clock_label(seconds: int) -> str:
 
 
 def _topbar(state: dict) -> dict[str, Any]:
-    deals_done = 1 if state["deal"]["locked"] else 0
     left = state_mod.seconds_left(state)
     return {
         "name": state["name"] or None,
-        "deals_done": deals_done,
-        "deals_total": 5,
+        # Always zero: this sample stops at the Deal Book, one stage before the
+        # first deal opens. The counter is here because it is part of the real
+        # programme's chrome, and hiding it would misrepresent the full build.
+        "deals_done": 0,
+        "deals_total": len(content.BRIEFING["deal_book"]),
         "points": state["points"],
         "clock_label": _clock_label(left),
         # Seconds as well as a label: the client counts down locally between
@@ -137,7 +127,7 @@ def _chips(state: dict) -> list[dict[str, Any]]:
     return out
 
 
-def _companion(state: dict, deal: dict) -> dict[str, str]:
+def _companion(state: dict) -> dict[str, str]:
     if state["stage"] == "welcome":
         lines = {
             "title": "Five clients. Five decisions. Not every deal on your desk is a good one. "
@@ -145,7 +135,7 @@ def _companion(state: dict, deal: dict) -> dict[str, str]:
             "identity": "Sign in and pick how much help you want. You can change it later.",
             "role": "Buy, sell, raise money, or fix a company in trouble. Today you are on the "
                     "buy side.",
-            "desk": "Start with Prism. Read the brief before you look at any number.",
+            "desk": "Five mandates, still face down. The briefing room comes first.",
         }
         tag = f"Welcome · {state['w_sub']}"
         line = lines.get(state["w_sub"], lines["title"])
@@ -154,25 +144,20 @@ def _companion(state: dict, deal: dict) -> dict[str, str]:
             "briefing": "You do not need to know these by heart. You will see each one again "
                         "inside a deal.",
             "quiz": "Wrong answers cost you nothing but points. Read the explanation either way.",
-            "dealbook": "Five mandates. Five sectors. One desk.",
         }
         tag = f"Briefing · {state['b_sub']}"
         line = lines.get(state["b_sub"], lines["briefing"])
     else:
-        step = state["deal"]["step"]
-        tag = f"{deal['code']} · {STEP_LABELS.get(step, step)}"
-        line = deal["companion"].get(step, deal["companion"]["brief"])
+        tag = "Deal Book · On your desk"
+        line = "Five mandates. Five sectors. One desk. This is where the sample stops."
     return {"tag": tag, "line": line}
 
 
-def _rail(state: dict, deal: dict) -> dict[str, Any]:
+def _rail(state: dict) -> dict[str, Any]:
     briefing = content.BRIEFING
     total = len(briefing["words"]) + len(briefing["questions"])
     done = len(state["words_opened"]) + len(state["answers"])
-    tray = state["deal"]["tray"]
     return {
-        "show_tray": state["stage"] == "prism" and state["deal"]["step"] == "research",
-        "tray": [{"kind": item["kind"], "text": item["text"]} for item in tray],
         "progress": {
             "done": done,
             "total": total,
@@ -229,17 +214,7 @@ def _welcome_view(state: dict) -> dict[str, Any]:
 
     else:  # desk
         base.update({
-            "deals": [
-                {
-                    "code": d["code"],
-                    "sector": d["sector"],
-                    "year": d["year"],
-                    "status": d["status"],
-                    "note": d["note"],
-                    "open": d["status"] == "open",
-                }
-                for d in content.BRIEFING["deal_book"]
-            ],
+            "deals": _mandates(content.BRIEFING),
             "footer": content.BRIEFING["deal_book_footer"],
         })
 
@@ -256,43 +231,18 @@ def _brief_view(state: dict) -> dict[str, Any]:
     screen = state["b_sub"]
     base: dict[str, Any] = {"kind": "brief", "screen": screen}
 
-    if screen == "briefing":
-        opened = state["words_opened"]
-        total = len(briefing["words"])
-        base.update({
-            "lede": briefing["stage_lede"],
-            "hint": briefing["stage_hint"],
-            "words": [
-                {
-                    "id": w["id"],
-                    "word": w["word"],
-                    "meaning": w["meaning"],
-                    "example": w["example"],
-                    "where": w["where"],
-                    "open": w["id"] in opened,
-                }
-                for w in briefing["words"]
-            ],
-            "opened": len(opened),
-            "total": total,
-            "pct": round(len(opened) / total * 100) if total else 0,
-            "can_start_quiz": len(opened) == total,
-        })
-
-    elif screen == "quiz":
-        question = content.question_at(state["q_index"])
-        if question is None:
-            # Defensive: a corrupt q_index should not 500 the page.
-            base.update({"kind": "brief", "screen": "dealbook", "deals": [], "lede": "",
-                         "hint": "", "footer": ""})
-            return base
-
+    if screen == "quiz":
+        # `q_index` only ever advances to the last question, so this clamp is
+        # unreachable in a healthy run. It is here so that a corrupt session
+        # renders the last question instead of a 500.
+        index = min(state["q_index"], len(briefing["questions"]) - 1)
+        question = content.question_at(index)
         given = state["answers"].get(question["id"])
         answered = given is not None
 
         base.update({
-            "index": state["q_index"],
-            "number": state["q_index"] + 1,
+            "index": index,
+            "number": index + 1,
             "total": len(briefing["questions"]),
             "points": state["points"],
             "answered_count": len(state["answers"]),
@@ -304,262 +254,67 @@ def _brief_view(state: dict) -> dict[str, Any]:
             "correct_index": question["answer"] if answered else None,
             "why": question["why"] if answered else None,
             "can_advance": answered,
-            "is_last": state["q_index"] == len(briefing["questions"]) - 1,
+            "is_last": index == len(briefing["questions"]) - 1,
         })
+        return base
 
-    else:  # dealbook
-        base.update({
-            "lede": briefing["deal_book_lede"],
-            "hint": briefing["deal_book_hint"],
-            "footer": briefing["deal_book_footer"],
-            "deals": [
-                {
-                    "code": d["code"],
-                    "sector": d["sector"],
-                    "year": d["year"],
-                    "status": d["status"],
-                    "note": d["note"],
-                    "open": d["status"] == "open",
-                }
-                for d in briefing["deal_book"]
-            ],
-            "brief_done": state["brief_done"],
-        })
-
+    # briefing
+    opened = state["words_opened"]
+    total = len(briefing["words"])
+    base.update({
+        "lede": briefing["stage_lede"],
+        "hint": briefing["stage_hint"],
+        "words": [
+            {
+                "id": w["id"],
+                "word": w["word"],
+                "meaning": w["meaning"],
+                "example": w["example"],
+                "where": w["where"],
+                "open": w["id"] in opened,
+            }
+            for w in briefing["words"]
+        ],
+        "opened": len(opened),
+        "total": total,
+        "pct": round(len(opened) / total * 100) if total else 0,
+        "can_start_quiz": len(opened) == total,
+    })
     return base
 
 
 # ---------------------------------------------------------------------------
-# Stage 3 — Project Prism
+# Stage 3 — Deal Book
 # ---------------------------------------------------------------------------
 
 
-def _range_block(state: dict, deal: dict) -> dict[str, Any]:
-    """The fair-range band geometry, computed server-side.
+def _dealbook_view(state: dict) -> dict[str, Any]:
+    """The desk, and the end of this sample.
 
-    The client gets percentages, not the arithmetic, so the band it draws is
-    always the band the server scored against.
+    The five mandates are listed and the open one is highlighted, but nothing
+    is clickable: opening a mandate is stage 4, and stage 4 is not built. A
+    button that does nothing would be worse than no button, so the closing
+    note says plainly where the sample stops.
     """
-    task = deal["task"]
-    low, high = rules.fair_range(deal)
-    price = state["deal"]["price_m"] or task["default_price_m"]
-    band_left = _pct(low, task["price_min_m"], task["price_max_m"])
-    band_right = _pct(high, task["price_min_m"], task["price_max_m"])
+    briefing = content.BRIEFING
+    scoring = rules.points_breakdown(state)
     return {
-        "low_label": money(low),
-        "high_label": money(high),
-        "calc": (f"{task['users_m']:g}M users × ${task['per_user'][0]['value']:g} to "
-                 f"${task['per_user'][-1]['value']:g} = {money(low)} to {money(high)}"),
-        "note": task["range_note"],
-        "band_left_pct": band_left,
-        "band_width_pct": round(band_right - band_left, 2),
-        "marker_left_pct": _pct(price, task["price_min_m"], task["price_max_m"]),
-        "scale_min_label": money(task["price_min_m"]),
-        "scale_max_label": money(task["price_max_m"]),
-        "price_label": money(price),
-        "in_range": low <= price <= high,
+        "kind": "dealbook",
+        "lede": briefing["deal_book_lede"],
+        "hint": briefing["deal_book_hint"],
+        "deals": _mandates(briefing),
+        "footer": briefing["deal_book_footer"],
+        "close": briefing["deal_book_close"],
+        "brief_done": state["brief_done"],
+        "summary": [
+            {"label": "Briefing answers correct",
+             "value": f"{scoring['questions_correct']} of {scoring['questions_total']}"},
+            {"label": "Points",
+             "value": f"{scoring['points']} of {scoring['points_possible']}"},
+            {"label": "Guidance mode",
+             "value": "Less" if state["guidance"] == "less" else "Normal"},
+        ],
     }
-
-
-def _prism_view(state: dict, deal: dict) -> dict[str, Any]:
-    deal_state = state["deal"]
-    step = deal_state["step"]
-    task = deal["task"]
-
-    view: dict[str, Any] = {
-        "kind": "prism",
-        "step": step,
-        "head": {
-            "eyebrow": (f"{deal['code']} · {deal['sector']} · {deal['year']} · "
-                        f"{STEP_LABELS.get(step, step)}"),
-            "step_label": f"Step {STEP_OF.get(step, 1)} of 4",
-            "title": "",
-            "lede": "",
-        },
-        "skills": deal["skills"],
-        "step_of": deal["step_of"],
-    }
-
-    if step == "brief":
-        view["head"].update({
-            "title": deal["brief"]["headline"],
-            "lede": deal["brief"]["client_line"],
-        })
-        view["brief"] = {
-            "body": deal["brief"]["body"],
-            "mood_label": deal["brief"]["mood_label"],
-            "mood_line": deal["brief"]["mood_line"],
-        }
-
-    elif step == "research":
-        pages = deal["terminal"]["pages"]
-        active_id = deal_state["active_page"] or pages[0]["id"]
-        active = next((p for p in pages if p["id"] == active_id), pages[0])
-        seen = deal_state["seen"]
-        tray_texts = {item["text"] for item in deal_state["tray"]}
-
-        view["head"].update({
-            "title": "The Deal Terminal",
-            "lede": "A safe, built-in research desk. Every page is fictional in name but based "
-                    "on real, dated facts.",
-        })
-        view["research"] = {
-            "address": deal["terminal"]["address"],
-            "tabs": [{"id": p["id"], "label": p["label"], "on": p["id"] == active["id"],
-                      "seen": p["id"] in seen} for p in pages],
-            "page": {
-                "title": active["title"],
-                "body": active["body"],
-                "stats": active.get("stats", []),
-                "items": [
-                    {
-                        "date": item.get("date"),
-                        "text": item["text"],
-                        "flag": item.get("flag"),
-                        "saved": item["text"] in tray_texts,
-                        "kind": "risk" if item.get("flag") == "risk" else "fact",
-                    }
-                    for item in active.get("items", [])
-                ],
-            },
-            "seen": len(seen),
-            "total": len(pages),
-        }
-
-    elif step == "task":
-        view["head"].update({"title": task["prompt"], "lede": task["hint"]})
-        metric_state = {}
-        if deal_state["metric_right"]:
-            metric_state = {task["correct_metric"]: "correct"}
-            if deal_state["metric"] != task["correct_metric"]:
-                metric_state[deal_state["metric"]] = "wrong"
-        elif deal_state["metric"]:
-            metric_state = {deal_state["metric"]: "wrong"}
-
-        block: dict[str, Any] = {
-            "prompt": task["prompt"],
-            "metrics": [
-                {
-                    "id": m["id"],
-                    "label": m["label"],
-                    "value": m["value"],
-                    "note": m["note"],
-                    "state": metric_state.get(m["id"], "idle"),
-                }
-                for m in task["metrics"]
-            ],
-            "show_range": deal_state["metric_right"],
-            "explanation": (task["wrong_metric_explanation"]
-                            if deal_state["metric"] and not deal_state["metric_right"] else None),
-            "can_continue": deal_state["metric_right"],
-            "per_user_label": task["per_user_label"],
-            "range_label": task["range_label"],
-        }
-        if deal_state["metric_right"]:
-            block["per_user"] = [
-                {"label": p["label"], "value_label": f"${p['value']:g} per user"}
-                for p in task["per_user"]
-            ]
-            block["range"] = _range_block(state, deal)
-        view["task"] = block
-
-    elif step in ("call", "review"):
-        call = deal["call"]
-        selected_protections = set(deal_state["protections"])
-        block = {
-            "prompt": call["prompt"],
-            "hint": call["hint"],
-            "choices": [
-                {"id": c["id"], "label": c["label"], "blurb": c["blurb"],
-                 "selected": deal_state["choice"] == c["id"]}
-                for c in call["choices"]
-            ],
-            "show_protections": deal_state["choice"] == "protect",
-            "protection_label": call["protection_label"],
-            "protection_note": call["protection_note"],
-            "protections": [
-                {"id": p["id"], "label": p["label"], "blurb": p["blurb"],
-                 "selected": p["id"] in selected_protections}
-                for p in call["protections"]
-            ],
-            "show_price": deal_state["choice"] not in (None, "walk"),
-            "price_label": call["price_label"],
-            "show_reasons": deal_state["choice"] is not None,
-            "reason_label": call["reason_label"],
-            "reasons": [
-                {"id": r["id"], "text": r["text"], "selected": deal_state["reason"] == r["id"]}
-                for r in call["reasons"]
-            ],
-            "can_review": rules.call_is_complete(state, deal),
-            "range": _range_block(state, deal),
-        }
-        view["head"].update({"title": call["prompt"], "lede": call["hint"]})
-        view["call"] = block
-
-        if step == "review":
-            choice_label = next((c["label"] for c in call["choices"]
-                                 if c["id"] == deal_state["choice"]), "")
-            reason_text = next((r["text"] for r in call["reasons"]
-                                if r["id"] == deal_state["reason"]), "")
-            protection_labels = [p["label"] for p in call["protections"]
-                                 if p["id"] in selected_protections]
-            low, high = rules.fair_range(deal)
-
-            rows = [
-                {"label": "Deal",
-                 "value": f"{deal['code']} · {deal['sector']} · {deal['year']}"},
-                {"label": "Call", "value": choice_label},
-            ]
-            if deal_state["choice"] != "walk":
-                rows.append({"label": "Price", "value": money(deal_state["price_m"])})
-                rows.append({"label": "Fair range", "value": f"{money(low)} – {money(high)}"})
-            if protection_labels:
-                rows.append({"label": "Protection", "value": ", ".join(protection_labels)})
-            rows.append({"label": "Reason", "value": reason_text})
-
-            view["review"] = {
-                "title": "Review before it locks",
-                "lede": "Once you lock this, it is final. No going back.",
-                "rows": rows,
-                "note_label": call["note_label"],
-                "note_placeholder": call["note_placeholder"],
-                "note_max": call["note_max"],
-                "note": deal_state["note"],
-            }
-
-    else:  # receipt
-        call = deal["call"]
-        choice_label = next((c["label"] for c in call["choices"]
-                             if c["id"] == deal_state["choice"]), "")
-        headline = f"{deal['code']} — {choice_label}"
-        if deal_state["choice"] != "walk":
-            headline += f" at {money(deal_state['price_m'])}"
-
-        scoring = rules.points_breakdown(state)
-        view["head"].update({
-            "title": "Your call is on the record",
-            "lede": deal["receipt"]["line"],
-        })
-        # Note what is NOT here: deal['task']['right_call']. The outcome stays
-        # sealed until the Truth stage, which this sample does not build.
-        view["receipt"] = {
-            "stamp": deal["receipt"]["stamp"],
-            "headline": headline,
-            "detail": deal["receipt"]["detail"],
-            "summary": [
-                {"label": "Briefing answers correct",
-                 "value": f"{scoring['questions_correct']} of {scoring['questions_total']}"},
-                {"label": "Points", "value": str(scoring["points"])},
-                {"label": "Evidence saved", "value": str(len(deal_state["tray"]))},
-                {"label": "Guidance mode",
-                 "value": "Less" if state["guidance"] == "less" else "Normal"},
-            ],
-            "next_note": "The next stage in the full programme would open Project Vault. Nothing "
-                         "about how this deal really ended is shown here — that is the Truth "
-                         "stage, and the blueprint keeps it sealed until the end of the run.",
-        }
-
-    return view
 
 
 # ---------------------------------------------------------------------------
@@ -569,21 +324,18 @@ def _prism_view(state: dict, deal: dict) -> dict[str, Any]:
 
 def build(state: dict) -> dict[str, Any]:
     """The complete render payload for one player."""
-    deal_id = state["deal"]["id"] or content.FIRST_DEAL_ID
-    deal = content.get_deal(deal_id)
-
     if state["stage"] == "welcome":
         view = _welcome_view(state)
     elif state["stage"] == "brief":
         view = _brief_view(state)
     else:
-        view = _prism_view(state, deal)
+        view = _dealbook_view(state)
 
     return {
         "stage": state["stage"],
         "topbar": _topbar(state),
         "chips": _chips(state),
-        "companion": _companion(state, deal),
-        "rail": _rail(state, deal),
+        "companion": _companion(state),
+        "rail": _rail(state),
         "view": view,
     }

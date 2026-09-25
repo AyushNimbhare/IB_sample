@@ -3,10 +3,10 @@
 
    This file is a VIEW LAYER and nothing else. It has no idea:
      - which quiz answer is correct
-     - which metric is the right one
-     - what the fair range is
-     - whether a step may be reached
-     - what a call scores
+     - what a question's explanation says
+     - how many points anything is worth
+     - which screen may be reached next
+     - how any deal turns out
 
    It asks the server for a render payload, draws it, and posts action names
    back. Every decision is made in Python (sim/rules.py). If you deleted this
@@ -25,8 +25,6 @@
   var clockSecs = null;    // server seconds, interpolated locally for display
   var busy = false;        // one action in flight at a time
   var draft = { name: '', nda: false, guidance: 'normal', seeded: false };
-  var noteDraft = '';
-  var noteSeeded = false;
 
   /* ======================================================================
      Helpers
@@ -75,10 +73,6 @@
       draft.nda = !!state.view.nda;
       draft.guidance = state.view.guidance || 'normal';
       draft.seeded = true;
-    }
-    if (!noteSeeded && state.view.kind === 'prism' && state.view.review) {
-      noteDraft = state.view.review.note || '';
-      noteSeeded = true;
     }
   }
 
@@ -198,38 +192,20 @@
           '</div>' +
           '<span class="companion__tag">' + esc(payload.companion.tag) + '</span>' +
           '<p class="companion__line">' + esc(payload.companion.line) + '</p>' +
-        '</div>';
+        '</div>' +
+        '<div class="rail-card">' +
+          '<span class="rail-card__title">Briefing progress</span>' +
+          '<div class="progress">' +
+            '<span class="progress__track"><span class="progress__bar" style="width:' +
+              r.progress.pct + '%"></span></span>' +
+            '<span class="progress__label tnum">' + esc(r.progress.label) + '</span>' +
+          '</div>' +
+          '<p class="small muted">Six words opened, four questions answered. ' +
+            'Points come from the questions only.</p>' +
+        '</div>' +
+      '</aside>';
 
-    if (r.show_tray) {
-      html += '<div class="rail-card">' +
-        '<span class="rail-card__title">Evidence tray \u00b7 ' + r.tray.length + ' saved</span>';
-      if (!r.tray.length) {
-        html += '<p class="tray__empty">Save a fact or a risk as you read. ' +
-                'Meera refers back to what you saved.</p>';
-      } else {
-        r.tray.forEach(function (item) {
-          var kind = item.kind === 'risk' ? ' tray__kind--risk' : ' tray__kind--fact';
-          html += '<div class="tray__item">' +
-                    '<span class="tray__kind' + kind + '">' + esc(item.kind) + '</span>' +
-                    '<span>' + esc(item.text) + '</span>' +
-                  '</div>';
-        });
-      }
-      html += '</div>';
-    }
-
-    html += '<div class="rail-card">' +
-      '<span class="rail-card__title">Briefing progress</span>' +
-      '<div class="progress">' +
-        '<span class="progress__track"><span class="progress__bar" style="width:' +
-          r.progress.pct + '%"></span></span>' +
-        '<span class="progress__label tnum">' + esc(r.progress.label) + '</span>' +
-      '</div>' +
-      '<p class="small muted">Six words opened, four questions answered. ' +
-        'Points come from the questions only.</p>' +
-    '</div>';
-
-    return html + '</aside>';
+    return html;
   }
 
   /* ======================================================================
@@ -360,19 +336,18 @@
       '</div></div>';
   }
 
-  function dealCards(deals, interactive) {
+  /* Mandate cards are never interactive in this sample: opening one is stage 4
+     and stage 4 is not built, so they are plain elements rather than buttons
+     that would do nothing. The open mandate is still visually distinct. */
+  function dealCards(deals) {
     return deals.map(function (d) {
       var cls = d.open ? 'deal-card deal-card--open' : 'deal-card deal-card--locked';
-      var open = interactive && d.open;
-      var tag = open ? 'button' : (interactive ? 'button' : 'div');
-      return '<' + tag + ' class="' + cls + '"' +
-               (open ? ' data-action="deal.open" data-payload="' + attr({ deal_id: d.code.toLowerCase() }) + '"' : '') +
-               (interactive && !d.open ? ' disabled' : '') + '>' +
+      return '<div class="' + cls + '">' +
                '<span class="deal-card__sector">' + esc(d.sector) + ' \u00b7 ' + d.year + '</span>' +
                '<span class="deal-card__code">' + esc(d.code) + '</span>' +
                '<span class="deal-card__status">' + esc(d.note) + '</span>' +
                (d.open ? '' : '<span class="deal-card__mark" aria-hidden="true">?</span>') +
-             '</' + tag + '>';
+             '</div>';
     }).join('');
   }
 
@@ -385,12 +360,13 @@
           'the company names stay hidden until the Truth.</p>' +
       '</div>' +
       '<div class="card"><div class="card__body">' +
-        '<div class="dealbook">' + dealCards(v.deals, false) + '</div>' +
+        '<div class="dealbook">' + dealCards(v.deals) + '</div>' +
         '<div class="rule"></div>' +
         '<p class="small muted">' + esc(v.footer) + '</p>' +
       '</div>' +
       '<div class="card__foot">' +
-        '<span class="small muted">Start with Prism. Read the brief before you look at any number.</span>' +
+        '<span class="small muted">The words come first. Read them before you look at ' +
+          'any number.</span>' +
         '<button class="btn btn--primary" data-action="brief.open" data-payload="{}">' +
           'Open the Briefing Room</button>' +
       '</div></div>';
@@ -401,9 +377,8 @@
      ====================================================================== */
 
   function renderBrief(v) {
-    if (v.screen === 'briefing') return briefBriefing(v);
     if (v.screen === 'quiz') return briefQuiz(v);
-    return briefDealBook(v);
+    return briefBriefing(v);
   }
 
   function briefBriefing(v) {
@@ -500,7 +475,11 @@
       '</div>';
   }
 
-  function briefDealBook(v) {
+  /* ======================================================================
+     Stage 3 — Deal Book
+     ====================================================================== */
+
+  function renderDealBook(v) {
     return '' +
       '<div class="stage-head">' +
         '<span class="eyebrow">Stage 3 \u00b7 Deal Book</span>' +
@@ -513,337 +492,31 @@
           '<span class="card__meta">' + (v.brief_done ? 'Briefing complete' : '') + '</span>' +
         '</div>' +
         '<div class="card__body" style="display:flex;flex-direction:column;gap:16px">' +
-          '<div class="dealbook">' + dealCards(v.deals, true) + '</div>' +
+          '<div class="dealbook">' + dealCards(v.deals) + '</div>' +
           '<div class="rule"></div>' +
           '<p class="small muted">' + esc(v.footer) + '</p>' +
         '</div>' +
-        '<div class="card__foot">' +
-          '<span class="small muted">Deals open one at a time, in a fixed order.</span>' +
-          '<button class="btn btn--primary" data-action="deal.open" ' +
-            'data-payload="' + attr({ deal_id: 'prism' }) + '">Open Project Prism</button>' +
-        '</div>' +
-      '</div>';
-  }
-
-  /* ======================================================================
-     Stage 3 — Project Prism
-     ====================================================================== */
-
-  function prismHead(v) {
-    return '' +
-      '<div class="stage-head">' +
-        '<span class="eyebrow">' + esc(v.head.eyebrow) + '</span>' +
-        '<h1>' + esc(v.head.title) + '</h1>' +
-        '<p class="stage-head__lede">' + esc(v.head.lede) + '</p>' +
-      '</div>';
-  }
-
-  function renderPrism(v) {
-    if (v.step === 'brief') return prismBrief(v);
-    if (v.step === 'research') return prismResearch(v);
-    if (v.step === 'task') return prismTask(v);
-    if (v.step === 'review') return prismReview(v);
-    if (v.step === 'receipt') return prismReceipt(v);
-    return prismCall(v);
-  }
-
-  function prismBrief(v) {
-    return '' +
-      prismHead(v) +
-      '<div class="card"><div class="card__body" style="display:flex;flex-direction:column;gap:16px">' +
-        '<p class="lede">' + esc(v.brief.body) + '</p>' +
-        '<div class="nda" style="border-style:solid">' +
-          '<span class="nda__title">' + esc(v.brief.mood_label) + '</span>' +
-          '<p>' + esc(v.brief.mood_line) + '</p>' +
-        '</div>' +
-        '<div class="btn-row">' +
-          '<span class="sample-badge">Skills \u00b7 ' + esc(v.skills.join(' \u00b7 ')) + '</span>' +
-          '<span class="sample-badge">' + esc(v.step_of) + '</span>' +
-        '</div>' +
       '</div>' +
-      '<div class="card__foot">' +
-        '<span class="small muted">Research is next. Nothing you read costs points.</span>' +
-        '<button class="btn btn--primary" data-action="deal.step" ' +
-          'data-payload="' + attr({ step: 'research' }) + '">Open the Deal Terminal</button>' +
-      '</div></div>';
-  }
-
-  function prismResearch(v) {
-    var r = v.research;
-    var page = r.page;
-
-    var body = '<p class="lede">' + esc(page.body) + '</p>';
-
-    if (page.stats && page.stats.length) {
-      body += '<div class="stat-grid">' + page.stats.map(function (s) {
-        return '<div class="stat' + (s.tone === 'good' ? ' stat--good' : '') + '">' +
-                 '<span class="stat__label">' + esc(s.label) + '</span>' +
-                 '<span class="stat__value">' + esc(s.value) + '</span>' +
-                 (s.note ? '<span class="stat__note">' + esc(s.note) + '</span>' : '') +
-               '</div>';
-      }).join('') + '</div>';
-    }
-
-    if (page.items && page.items.length) {
-      body += '<div class="item-list">' + page.items.map(function (it) {
-        return '<div class="item">' +
-                 '<span class="item__main">' +
-                   (it.date ? '<span class="item__date">' + esc(it.date) + '</span>' : '') +
-                   '<span class="item__text">' + esc(it.text) + '</span>' +
-                 '</span>' +
-                 (it.flag ? '<span class="flag flag--' + esc(it.flag) + '">' + esc(it.flag) + '</span>' : '') +
-                 '<span class="item__save">' +
-                   (it.saved
-                     ? '<span class="flag flag--good">Saved</span>'
-                     : '<button class="btn btn--ghost btn--sm" data-action="deal.save_evidence" ' +
-                       'data-payload="' + attr({ text: it.text, kind: it.kind }) + '">Save</button>') +
-                 '</span>' +
-               '</div>';
-      }).join('') + '</div>';
-    }
-
-    return '' +
-      prismHead(v) +
-      '<div class="card" style="overflow:hidden">' +
-        '<div class="terminal__bar">' +
-          '<span class="terminal__dots" aria-hidden="true">' +
-            '<span class="terminal__dot"></span><span class="terminal__dot"></span>' +
-            '<span class="terminal__dot"></span>' +
-          '</span>' +
-          '<span>' + esc(r.address) + '</span>' +
+      '<div class="card">' +
+        '<div class="card__head">' +
+          '<span class="card__title">Your run so far</span>' +
+          '<span class="card__meta tnum">' + esc(v.summary[1].value) + ' points</span>' +
         '</div>' +
-        '<div class="tabs" role="tablist">' +
-          r.tabs.map(function (t) {
-            return '<button class="tab' + (t.on ? ' tab--on' : '') + '" role="tab" ' +
-                     'data-action="deal.tab" data-payload="' + attr({ page: t.id }) + '">' +
-                     esc(t.label) +
-                     (t.seen ? '<span class="tab__seen" aria-hidden="true">\u2713</span>' : '') +
-                   '</button>';
-          }).join('') +
-        '</div>' +
-        '<div class="terminal__page">' +
-          '<span class="card__meta">' + esc(page.title) + '</span>' +
-          body +
+        '<div class="card__body">' +
+          '<table class="summary-table"><tbody>' +
+            v.summary.map(function (row) {
+              return '<tr><td>' + esc(row.label) + '</td><td>' + esc(row.value) + '</td></tr>';
+            }).join('') +
+          '</tbody></table>' +
+          '<div class="rule"></div>' +
+          '<p class="small muted">' + esc(v.close) + '</p>' +
         '</div>' +
         '<div class="card__foot">' +
-          '<span class="small muted tnum">' + r.seen + ' of ' + r.total + ' pages opened' +
-            ' \u00b7 research is not a quiz, you may move on at any time</span>' +
-          '<button class="btn btn--primary" data-action="deal.step" ' +
-            'data-payload="' + attr({ step: 'task' }) + '">Go to the task</button>' +
+          '<span class="small muted">Six skill scores and a leaderboard arrive at the ' +
+            'Report stage.</span>' +
+          '<button class="btn" data-action="restart" data-payload="{}">Run it again</button>' +
         '</div>' +
       '</div>';
-  }
-
-  function rangeBar(range) {
-    return '' +
-      '<div class="rangebar">' +
-        '<div class="rangebar__track">' +
-          '<span class="rangebar__band" style="left:' + range.band_left_pct + '%;width:' +
-            range.band_width_pct + '%"></span>' +
-          '<span class="rangebar__marker" style="left:' + range.marker_left_pct + '%"></span>' +
-        '</div>' +
-        '<div class="rangebar__scale"><span>' + esc(range.scale_min_label) + '</span>' +
-          '<span>' + esc(range.scale_max_label) + '</span></div>' +
-        '<div class="rangebar__legend">' +
-          '<span class="legend-item"><span class="legend-swatch"></span>Fair range, ' +
-            esc(range.low_label) + ' to ' + esc(range.high_label) + '</span>' +
-          '<span class="legend-item"><span class="legend-line"></span>Your price, ' +
-            esc(range.price_label) + '</span>' +
-        '</div>' +
-      '</div>';
-  }
-
-  function prismTask(v) {
-    var t = v.task;
-
-    var metrics = t.metrics.map(function (m) {
-      var cls = 'metric';
-      if (m.state === 'correct') cls += ' metric--right';
-      else if (m.state === 'wrong') cls += ' metric--wrong';
-      return '<button class="' + cls + '" data-action="deal.pick_metric" ' +
-               'data-payload="' + attr({ metric_id: m.id }) + '"' +
-               (t.can_continue ? ' disabled' : '') + '>' +
-               '<span class="metric__label">' + esc(m.label) + '</span>' +
-               '<span class="metric__value">' + esc(m.value) + '</span>' +
-               (m.note ? '<span class="metric__note">' + esc(m.note) + '</span>' : '') +
-             '</button>';
-    }).join('');
-
-    var html = prismHead(v) +
-      '<div class="card"><div class="card__body" style="display:flex;flex-direction:column;gap:16px">' +
-        '<div class="metric-grid">' + metrics + '</div>';
-
-    if (t.explanation) {
-      html += '<p class="explain">' + esc(t.explanation) + '</p>';
-    }
-
-    if (t.show_range) {
-      html += '<div class="rule"></div>' +
-        '<span class="card__title">' + esc(t.per_user_label) + '</span>' +
-        '<div class="item-list">' +
-          t.per_user.map(function (p) {
-            return '<div class="item">' +
-                     '<span class="item__main"><span class="item__text">' + esc(p.label) + '</span></span>' +
-                     '<span class="item__date tnum">' + esc(p.value_label) + '</span>' +
-                   '</div>';
-          }).join('') +
-        '</div>' +
-        '<div class="rule"></div>' +
-        '<div class="range-summary">' +
-          '<strong>' + esc(t.range_label) + '</strong>' +
-          '<span class="range-summary__calc">' + esc(t.range.calc) + '</span>' +
-          '<span class="small muted">' + esc(t.range.note) + '</span>' +
-        '</div>' +
-        rangeBar(t.range);
-    }
-
-    html += '</div><div class="card__foot">' +
-      '<span class="small muted">' +
-        (t.can_continue ? 'Range built. Make the call next.'
-                        : 'Pick the number that matters most to the buyer.') +
-      '</span>' +
-      '<button class="btn btn--primary" data-action="deal.step" ' +
-        'data-payload="' + attr({ step: 'call' }) + '"' +
-        (t.can_continue ? '' : ' disabled') + '>Make the call</button>' +
-      '</div></div>';
-
-    return html;
-  }
-
-  function prismCall(v) {
-    var c = v.call;
-
-    var html = prismHead(v) +
-      '<div class="card"><div class="card__body" style="display:flex;flex-direction:column;gap:18px">' +
-        '<div class="call-grid">' +
-          c.choices.map(function (ch) {
-            return '<button class="call-choice' + (ch.selected ? ' call-choice--on' : '') + '" ' +
-                     'data-action="deal.pick_call" data-payload="' + attr({ choice_id: ch.id }) + '">' +
-                     '<span class="call-choice__label">' + esc(ch.label) + '</span>' +
-                     '<span class="call-choice__blurb">' + esc(ch.blurb) + '</span>' +
-                   '</button>';
-          }).join('') +
-        '</div>';
-
-    if (c.show_protections) {
-      html += '<div class="rule"></div>' +
-        '<div style="display:flex;flex-direction:column;gap:9px">' +
-          '<span class="card__title">' + esc(c.protection_label) + '</span>' +
-          '<p class="small muted">' + esc(c.protection_note) + '</p>' +
-          '<div class="protection-grid">' +
-            c.protections.map(function (p) {
-              return '<button class="protection' + (p.selected ? ' protection--on' : '') + '" ' +
-                       'data-action="deal.toggle_protection" ' +
-                       'data-payload="' + attr({ protection_id: p.id }) + '" ' +
-                       'aria-pressed="' + (p.selected ? 'true' : 'false') + '">' +
-                       '<span class="protection__box" aria-hidden="true">' +
-                         (p.selected ? '\u2713' : '') + '</span>' +
-                       '<span>' + esc(p.label) +
-                         '<span class="protection__blurb">' + esc(p.blurb) + '</span>' +
-                       '</span>' +
-                     '</button>';
-            }).join('') +
-          '</div>' +
-        '</div>';
-    }
-
-    if (c.show_price) {
-      html += '<div class="rule"></div>' +
-        '<div style="display:flex;flex-direction:column;gap:12px">' +
-          '<span class="card__title">' + esc(c.price_label) + '</span>' +
-          '<div class="price-row">' +
-            '<span class="price-display tnum">' + esc(c.range.price_label) + '</span>' +
-            '<span class="price-controls">' +
-              '<button class="stepper" data-action="deal.price" ' +
-                'data-payload="' + attr({ delta: -50 }) + '" aria-label="Lower the price">\u2212</button>' +
-              '<button class="stepper" data-action="deal.price" ' +
-                'data-payload="' + attr({ delta: 50 }) + '" aria-label="Raise the price">+</button>' +
-            '</span>' +
-            '<span class="flag ' + (c.range.in_range ? 'flag--good' : 'flag--risk') + '">' +
-              (c.range.in_range ? 'Inside your fair range' : 'Outside your fair range') + '</span>' +
-          '</div>' +
-          rangeBar(c.range) +
-        '</div>';
-    }
-
-    if (c.show_reasons) {
-      html += '<div class="rule"></div>' +
-        '<div style="display:flex;flex-direction:column;gap:9px">' +
-          '<span class="card__title">' + esc(c.reason_label) + '</span>' +
-          '<div class="reason-list">' +
-            c.reasons.map(function (r) {
-              return '<button class="reason' + (r.selected ? ' reason--on' : '') + '" ' +
-                       'data-action="deal.pick_reason" data-payload="' + attr({ reason_id: r.id }) + '">' +
-                       '<span class="reason__dot" aria-hidden="true"></span>' +
-                       '<span>' + esc(r.text) + '</span>' +
-                     '</button>';
-            }).join('') +
-          '</div>' +
-        '</div>';
-    }
-
-    html += '</div><div class="card__foot">' +
-      '<span class="small muted">' +
-        (c.can_review ? 'Ready to review.'
-                      : 'Pick a call, a reason, and any protection you want.') +
-      '</span>' +
-      '<button class="btn btn--primary" data-action="deal.step" ' +
-        'data-payload="' + attr({ step: 'review' }) + '"' +
-        (c.can_review ? '' : ' disabled') + '>Review my call</button>' +
-      '</div></div>';
-
-    return html;
-  }
-
-  function prismReview(v) {
-    var r = v.review;
-    return '' +
-      prismHead(v) +
-      '<div class="card"><div class="card__body">' +
-        '<table class="review-table"><tbody>' +
-          r.rows.map(function (row) {
-            return '<tr><td>' + esc(row.label) + '</td><td>' + esc(row.value) + '</td></tr>';
-          }).join('') +
-        '</tbody></table>' +
-        '<div class="rule"></div>' +
-        '<div class="field">' +
-          '<label for="call-note">' + esc(r.note_label) + '</label>' +
-          '<textarea class="textarea" id="call-note" maxlength="' + r.note_max + '" ' +
-            'placeholder="' + esc(r.note_placeholder) + '">' + esc(noteDraft) + '</textarea>' +
-        '</div>' +
-      '</div>' +
-      '<div class="card__foot">' +
-        '<button class="btn" data-action="deal.step" ' +
-          'data-payload="' + attr({ step: 'call' }) + '">Change something</button>' +
-        '<button class="btn btn--primary" data-action="deal.lock" data-payload="{}">' +
-          'Lock my call</button>' +
-      '</div></div>';
-  }
-
-  function prismReceipt(v) {
-    var r = v.receipt;
-    return '' +
-      prismHead(v) +
-      '<div class="receipt">' +
-        '<span class="stamp">' + esc(r.stamp) + '</span>' +
-        '<p class="lede">' + esc(r.headline) + '</p>' +
-        '<p class="small muted">' + esc(r.detail) + '</p>' +
-      '</div>' +
-      '<div class="card"><div class="card__body" style="display:flex;flex-direction:column;gap:12px">' +
-        '<span class="card__title">What this sample covers</span>' +
-        '<p class="small muted">' + esc(r.next_note) + '</p>' +
-        '<div class="rule"></div>' +
-        '<span class="card__title">Your run so far</span>' +
-        '<table class="review-table"><tbody>' +
-          r.summary.map(function (row) {
-            return '<tr><td>' + esc(row.label) + '</td><td>' + esc(row.value) + '</td></tr>';
-          }).join('') +
-        '</tbody></table>' +
-      '</div>' +
-      '<div class="card__foot">' +
-        '<span class="small muted">Six skill scores and a leaderboard arrive at the Report stage.</span>' +
-        '<button class="btn" data-action="restart" data-payload="{}">Run it again</button>' +
-      '</div></div>';
   }
 
   /* ======================================================================
@@ -855,7 +528,7 @@
     var main;
     if (v.kind === 'welcome') main = renderWelcome(v);
     else if (v.kind === 'brief') main = renderBrief(v);
-    else main = renderPrism(v);
+    else main = renderDealBook(v);
 
     app.innerHTML = '' +
       '<div class="shell">' +
@@ -934,8 +607,6 @@
     if (el.id === 'analyst-name') {
       draft.name = el.value;
       refreshIdentityGate();
-    } else if (el.id === 'call-note') {
-      noteDraft = el.value;
     }
   }, false);
 
@@ -946,15 +617,6 @@
       refreshIdentityGate();
     }
   }, false);
-
-  /* The note is saved on blur and does not re-render, so the caret is never
-     yanked out from under the player mid-sentence. */
-  document.addEventListener('blur', function (event) {
-    var el = event.target;
-    if (el && el.id === 'call-note') {
-      post('deal.note', { text: noteDraft }, { silent: true });
-    }
-  }, true);
 
   /* The clock ticks locally between actions so it does not look frozen, and
      every server response resyncs it. The server's value is the truth. */

@@ -17,8 +17,9 @@ from typing import Any
 STATE_VERSION = 1
 TOTAL_SECONDS = 40 * 60
 
-# The three stages this sample implements, in order.
-STAGE_ORDER = ("welcome", "brief", "prism")
+# The three stages this sample implements, in order. The full programme has
+# eleven; stages 4-11 are shown as dashed chips in the rail and nothing more.
+STAGE_ORDER = ("welcome", "brief", "dealbook")
 
 
 def blank_state() -> dict[str, Any]:
@@ -39,27 +40,7 @@ def blank_state() -> dict[str, Any]:
         "points": 0,
         "brief_done": False,
 
-        "deal": _blank_deal(),
-
         "started_at": None,
-    }
-
-
-def _blank_deal() -> dict[str, Any]:
-    return {
-        "id": None,
-        "step": "brief",            # brief -> research -> task -> call -> review -> receipt
-        "seen": [],
-        "active_page": None,
-        "tray": [],                 # [{"kind": "fact"|"risk", "text": str}]
-        "metric": None,
-        "metric_right": False,
-        "price_m": None,
-        "choice": None,             # go | protect | walk
-        "protections": [],
-        "reason": None,
-        "note": "",
-        "locked": False,
     }
 
 
@@ -85,7 +66,7 @@ def seconds_left(state: dict[str, Any]) -> int:
 
 
 def start_clock(state: dict[str, Any]) -> None:
-    """Start the run clock, once, the first time a deal opens."""
+    """Start the run clock, once, when the analyst signs in."""
     if not state.get("started_at"):
         state["started_at"] = time.time()
 

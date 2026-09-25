@@ -141,9 +141,9 @@ def api_health():
     """A small self-description. Useful when something looks wrong."""
     return jsonify({
         "ok": True,
-        "deals": sorted(content.DEALS),
-        "first_deal": content.FIRST_DEAL_ID,
         "stages_built": list(state_mod.STAGE_ORDER),
+        "stages_in_programme": len(views.CHIPS),
+        "mandates": [d["code"] for d in content.BRIEFING["deal_book"]],
         "actions": rules.known_actions(),
         "sessions_live": len(_SESSIONS),
     })
@@ -178,7 +178,7 @@ if __name__ == "__main__":
     debug = bool(os.environ.get("FINTREE_DEBUG"))
 
     print("  Ashford & Rowe — IB sample")
-    print(f"  deals loaded : {sorted(content.DEALS)}")
+    print(f"  mandates     : {', '.join(d['code'] for d in content.BRIEFING['deal_book'])}")
     print(f"  stages built : {', '.join(state_mod.STAGE_ORDER)}")
     print(f"  listening on : http://127.0.0.1:{port}")
     print()
