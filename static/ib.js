@@ -259,7 +259,7 @@
           '</div>' +
           '<div class="nda">' +
             '<span class="nda__title">Confidentiality</span>' +
-            '<p>Every target is a codename until the end. Those five are yours today:</p>' +
+            '<p>Every target is a codename. Those five are yours today:</p>' +
             '<div class="codenames">' +
               v.codenames.map(function (c) {
                 return '<span class="codename">' + esc(c) + '</span>';
@@ -334,7 +334,7 @@
       '<div class="stage-head">' +
         '<span class="eyebrow">Your job today</span>' +
         '<h1>Five mandates</h1>' +
-        '<p class="stage-head__lede">Sector and year only. The names stay hidden until the end.</p>' +
+        '<p class="stage-head__lede">Sector and year only. That is all the card shows.</p>' +
       '</div>' +
       '<div class="card">' +
         '<div class="card__head">' +
